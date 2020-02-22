@@ -1,0 +1,7 @@
+ - multiple window support
+ - arrow key right/left to accelerate/decelerate time
+- put create.c... in pthread.c (only useful maybe...)
+-half cells
+-add legend
+- coord and cells in parallel
+- kh for rectangle

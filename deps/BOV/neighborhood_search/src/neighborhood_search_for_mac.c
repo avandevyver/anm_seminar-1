@@ -1,12 +1,9 @@
-#include "neighborhood_search.h"
-#include <pthread.h>
-#include <pthread.c>
-#include <implement.h>
+#include "neighborhood_search_for_mac.h"
 
-void neighbours_new(int index, neighborhood* neigh, int i, double d, int is_after, int is_potential)
+void neighbours_new_for_mac(int index, neighborhood_for_mac* neigh, int i, double d, int is_after, int is_potential)
 {
 	if (is_after) {
-		neighbours* newP = malloc(sizeof(neighbours));
+		neighbours_for_mac* newP = malloc(sizeof(neighbours_for_mac));
 		CHECK_MALLOC(newP);
 		newP->index = index;
 		newP->distance = d;
@@ -15,33 +12,30 @@ void neighbours_new(int index, neighborhood* neigh, int i, double d, int is_afte
 		neigh[i].nPotentialNeighbours++;
 	}
 	if (!is_potential) {
-		neighbours* new = malloc(sizeof(neighbours));
+		neighbours_for_mac* new = malloc(sizeof(neighbours_for_mac));
 		CHECK_MALLOC(new);
 		new->index = index;
 		new->distance = d;
-		pthread_mutex_lock(&neigh[i].mutex);
 		new->next = neigh[i].list;
 		neigh[i].list = new;
 		neigh[i].nNeighbours++;
-		pthread_mutex_unlock(&neigh[i].mutex);
 	}
 }
 
-void neighbours_delete(neighbours* n) {
+void neighbours_delete_for_mac(neighbours_for_mac* n) {
 	if (n) {
-		neighbours* temp = n->next;
+		neighbours_for_mac* temp = n->next;
 		free(n);
-		neighbours_delete(temp);
+		neighbours_delete_for_mac(temp);
 	}
 }
 
-neighborhood* neighborhood_new(GLsizei n, neighborhood* previous)
+neighborhood_for_mac* neighborhood_new_for_mac(GLsizei n, neighborhood_for_mac* previous)
 {
-	neighborhood* neigh = calloc(n, sizeof(neighborhood));
+	neighborhood_for_mac* neigh = calloc(n, sizeof(neighborhood_for_mac));
 	CHECK_MALLOC(neigh);
 	for (int i = 0; i < n; i++) {
 		neigh[i].index = i;
-		neigh[i].mutex = PTHREAD_MUTEX_INITIALIZER;
 		neigh[i].nNeighbours = 0;
 		neigh[i].list = NULL;
 		if (previous) {
@@ -56,18 +50,17 @@ neighborhood* neighborhood_new(GLsizei n, neighborhood* previous)
 	return neigh;
 }
 
-void neighborhood_delete(neighborhood* nh, GLsizei n) {
+void neighborhood_delete_for_mac(neighborhood_for_mac* nh, GLsizei n) {
 	for (int i = 0; i < n; i++) {
-		neighbours_delete(nh[i].list);
+		neighbours_delete_for_mac(nh[i].list);
 		//neighbours_delete(nh[i].potential_list);
-		pthread_mutex_destroy(&(nh[i].mutex));
 	}
 	free(nh);
 }
 
-struct node* node_new(cell* c, int i, int index)
+struct node_for_mac* node_new_for_mac(cell_for_mac* c, int i, int index)
 {
-	node* new = malloc(sizeof(node));
+	node_for_mac* new = malloc(sizeof(node_for_mac));
 	CHECK_MALLOC(new);
 	new->index = index;
 	new->next = c[i].ResidentList;
@@ -76,17 +69,17 @@ struct node* node_new(cell* c, int i, int index)
 	return new;
 }
 
-void node_delete(node* n) {
+void node_delete_for_mac(node_for_mac* n) {
 	if (n) {
-		neighbours* temp = n->next;
+		neighbours_for_mac* temp = n->next;
 		free(n);
-		node_delete(temp);
+		node_delete_for_mac(temp);
 	}
 }
 
-cell* cell_new(GLsizei n)
+cell_for_mac* cell_new_for_mac(GLsizei n)
 {
-	cell* c = calloc(n, sizeof(cell));
+	cell_for_mac* c = calloc(n, sizeof(cell_for_mac));
 	CHECK_MALLOC(c);
 	for (int i = 0; i < n; i++) {
 		c[i].nResident = 0;
@@ -95,33 +88,33 @@ cell* cell_new(GLsizei n)
 	return c;
 }
 
-void cell_delete(cell* c, GLsizei n) {
+void cell_delete_for_mac(cell_for_mac* c, GLsizei n) {
 	for (int i = 0; i < n; i++)
-		node_delete(c[i].ResidentList);
+		node_delete_for_mac(c[i].ResidentList);
 	free(c);
 }
 
-void printNeighborhood(neighborhood* nh, GLfloat data[][8], int size) {
+void printNeighborhood_for_mac(neighborhood_for_mac* nh, GLfloat data[][8], int size) {
 	for (int i = 0; i < size; i++) {
 		printf("Resident %i : coordinate: %f %f   number of neighbours %i\n", i + 1, data[i][0], data[i][1], nh[i].nNeighbours);
 		int j = 1;
-		for (neighbours* current = nh[i].list; current; current = current->next)
+		for (neighbours_for_mac* current = nh[i].list; current; current = current->next)
 			printf("   Neighbours %i : %f %f\n", j++, data[current->index][0], data[current->index][1]);
 	}
 }
 
-void printCell(GLfloat data[][8], cell* c, int size) {
+void printCell_for_mac(GLfloat data[][8], cell_for_mac* c, int size) {
 	for (int i = 0; i < size; i++) {
 		printf("Cell %i : %i\n", i + 1, c[i].nResident);
 		int j = 1;
-		for (node* current = c[i].ResidentList; current; current = current->next)
+		for (node_for_mac* current = c[i].ResidentList; current; current = current->next)
 			printf("   Neighbours %i : %f %f\n", j++, data[current->index][0], data[current->index][1]);
 	}
 }
 
 // for v, a floating point value between 0 and 1, this function fills color with
 // the improved jet colormap color corresponding to v
-static void colormap(float v, float color[3])
+static void colormap_for_mac(float v, float color[3])
 {
 	float v1 = 3.5 * (v - 0.7);
 	float v2 = 1.25 * v;
@@ -137,34 +130,7 @@ static void colormap(float v, float color[3])
 	// color[2] = 1.5 - 4.0 * fabs(v - 0.25);
 }
 
-void protected_inc(protected_int* guard) {
-	pthread_mutex_lock(&guard->mutex);
-	guard->var++;
-	pthread_mutex_unlock(&guard->mutex);
-}
-
-int protected_get(protected_int* guard) {
-	pthread_mutex_lock(&guard->mutex);
-	int value = guard->var;
-	pthread_mutex_unlock(&guard->mutex);
-	return value;
-}
-
-int protected_get_inc(protected_int* guard) {
-	pthread_mutex_lock(&guard->mutex);
-	int value = guard->var;
-	guard->var++;
-	pthread_mutex_unlock(&guard->mutex);
-	return value;
-}
-
-void protected_reset(protected_int* guard) {
-	pthread_mutex_lock(&guard->mutex);
-	guard->var = 0;
-	pthread_mutex_unlock(&guard->mutex);
-}
-
-double compute_kh(int nPoints, int RA) {
+double compute_kh_for_mac(int nPoints, int RA) {
 	double target = 21.0 / nPoints;
 	if (nPoints < 21)
 		return sqrt(2.0);
@@ -182,7 +148,7 @@ double compute_kh(int nPoints, int RA) {
 	return kh_min;
 }
 
-bov_points_t* find_grid_points(double kh, double xmax) {
+bov_points_t* find_grid_points_for_mac(double kh, double xmax) {
 	double size = 2 * xmax / kh;
 	float(*pts)[2] = malloc((ceil(size) - 1) * 4 * sizeof(pts[0]));
 	CHECK_MALLOC(pts);
@@ -201,13 +167,12 @@ bov_points_t* find_grid_points(double kh, double xmax) {
 }
 
 
-void* loop_thread(void* args) {
-	lta* loop = (lta*)args;
-	cell* cellArray = loop->cells;
-	protected_int* cellCounter = loop->cellCounter;
+void* loop_without_drawing_for_mac(void* args) {
+	lafm* loop = (lafm*)args;
+	cell_for_mac* cellArray = loop->cells;
+	int cellCounter = loop->cellCounter;
 	int size = ceil(loop->size);
-	int this_thread_number = loop->this_thread_number;
-	neighborhood* nh = loop->nh;
+	neighborhood_for_mac* nh = loop->nh;
 	double kh = loop->kh;
 	double L = loop->L;
 	GLsizei nPoints = loop->nPoints;
@@ -215,13 +180,9 @@ void* loop_thread(void* args) {
 	int use_verlet = loop->use_verlet;
 	int use_cells = loop->use_cells;
 	int use_improved_method = loop->use_improved_method;
-	int nThreads = loop->nThreads;
 	unsigned long frameCount = 0;
 	int i, j;
-	if (use_cells && !(use_verlet && iterations))
-		i = 0;
-	else
-		i = (int)(this_thread_number * ((double)nPoints) / nThreads);
+	i = 0;
 	if (use_improved_method)
 		j = i + 1;
 	else
@@ -232,16 +193,16 @@ void* loop_thread(void* args) {
 	int checking_cell_number = -1;
 	int this_cell_number = -1;
 	int checked_cells = 0;
-	cell checking_cell;
-	node checking_node;
-	neighbours checking_neighbours;
-	cell this_cell;
-	node this_node;
+	cell_for_mac checking_cell;
+	node_for_mac checking_node;
+	neighbours_for_mac checking_neighbours;
+	cell_for_mac this_cell;
+	node_for_mac this_node;
 	int i_check = i - 1;
 	int j_check = j - 1;
 	int f_check = 1;
 	int are_still_neighbours = 1;
-	while (((!(use_cells && !(use_verlet && iterations)) && i < ((int)((this_thread_number + 1) * ((double)nPoints) / nThreads))) || (use_cells && !(use_verlet && iterations) && i < nPoints)) && this_cell_number < size * size) {
+	while (use_cells && !(use_verlet && iterations) && i < nPoints && this_cell_number < size * size) {
 		if (i != i_check) {
 			nValid = 0;
 			nInvalid = 0;
@@ -257,9 +218,12 @@ void* loop_thread(void* args) {
 			}
 			else if (use_cells) {
 				if (i == 0) {
-					this_cell_number = protected_get_inc(cellCounter);
-					while (!cellArray[this_cell_number].nResident && this_cell_number < size * size)
-						this_cell_number = protected_get_inc(cellCounter);
+					this_cell_number = cellCounter;
+					cellCounter++;
+					while (!cellArray[this_cell_number].nResident && this_cell_number < size * size) {
+						this_cell_number = cellCounter;
+						cellCounter++;
+					}
 					if (this_cell_number < size * size) {
 						this_cell = cellArray[this_cell_number];
 						this_node = this_cell.ResidentList[0];
@@ -269,9 +233,12 @@ void* loop_thread(void* args) {
 					if (this_node.next)
 						this_node = *this_node.next;
 					else {
-						this_cell_number = protected_get_inc(cellCounter);
-						while (this_cell_number < size * size && !cellArray[this_cell_number].nResident && !cellArray[this_cell_number].ResidentList)
-							this_cell_number = protected_get_inc(cellCounter);
+						this_cell_number = cellCounter;
+						cellCounter++;
+						while (this_cell_number < size * size && !cellArray[this_cell_number].nResident && !cellArray[this_cell_number].ResidentList) {
+							this_cell_number = cellCounter;
+							cellCounter++;
+						}
 						if (this_cell_number < size * size) {
 							this_cell = cellArray[this_cell_number];
 							this_node = this_cell.ResidentList[0];
@@ -286,9 +253,9 @@ void* loop_thread(void* args) {
 						checking_node = *this_node.next;
 					}
 					else {
-						checking_cell_number = find_next_cell(this_cell_number, ++checked_cells, size, use_improved_method);
+						checking_cell_number = find_next_cell_for_mac(this_cell_number, ++checked_cells, size, use_improved_method);
 						while (checking_cell_number != -1 && !cellArray[checking_cell_number].nResident && !cellArray[checking_cell_number].ResidentList)
-							checking_cell_number = find_next_cell(this_cell_number, ++checked_cells, size, use_improved_method);
+							checking_cell_number = find_next_cell_for_mac(this_cell_number, ++checked_cells, size, use_improved_method);
 						if (checking_cell_number != -1) {
 							checking_cell = cellArray[checking_cell_number];
 							checking_node = checking_cell.ResidentList[0];
@@ -296,9 +263,9 @@ void* loop_thread(void* args) {
 					}
 				}
 				else if (this_cell_number < size * size) {
-					checking_cell_number = find_next_cell(this_cell_number, checked_cells, size, use_improved_method);
+					checking_cell_number = find_next_cell_for_mac(this_cell_number, checked_cells, size, use_improved_method);
 					while (checking_cell_number != -1 && !cellArray[checking_cell_number].nResident && !cellArray[checking_cell_number].ResidentList)
-						checking_cell_number = find_next_cell(this_cell_number, ++checked_cells, size, use_improved_method);
+						checking_cell_number = find_next_cell_for_mac(this_cell_number, ++checked_cells, size, use_improved_method);
 					if (checking_cell_number != -1) {
 						checking_cell = cellArray[checking_cell_number];
 						checking_node = checking_cell.ResidentList[0];
@@ -331,14 +298,14 @@ void* loop_thread(void* args) {
 			}
 			double distance = sqrt((pow((double)loop->coord[index_j][0] - (double)loop->coord[index_i][0], 2) + pow((double)loop->coord[index_j][1] - (double)loop->coord[index_i][1], 2)));
 			if (distance <= kh && index_i != index_j) {
-				neighbours_new(index_j, nh, index_i, distance, !iterations, 0);
+				neighbours_new_for_mac(index_j, nh, index_i, distance, !iterations, 0);
 				if (use_improved_method)
-					neighbours_new(index_i, nh, index_j, distance, 0, 0);
+					neighbours_new_for_mac(index_i, nh, index_j, distance, 0, 0);
 			}
 			else if (use_verlet && !iterations && distance <= (kh + L) && index_i != index_j) {
-				neighbours_new(index_j, nh, index_i, distance, !iterations, 1);
+				neighbours_new_for_mac(index_j, nh, index_i, distance, !iterations, 1);
 				if (use_improved_method)
-					neighbours_new(index_i, nh, index_j, distance, 0, 1);
+					neighbours_new_for_mac(index_i, nh, index_j, distance, 0, 1);
 			}
 			if (use_verlet && iterations) {
 				if (checking_neighbours.next) {
@@ -351,9 +318,9 @@ void* loop_thread(void* args) {
 				if (checking_node.next)
 					checking_node = *(checking_node.next);
 				else {
-					checking_cell_number = find_next_cell(this_cell_number, ++checked_cells, size, use_improved_method);
+					checking_cell_number = find_next_cell_for_mac(this_cell_number, ++checked_cells, size, use_improved_method);
 					while (checking_cell_number != -1 && !cellArray[checking_cell_number].nResident && !cellArray[checking_cell_number].ResidentList)
-						checking_cell_number = find_next_cell(this_cell_number, ++checked_cells, size, use_improved_method);
+						checking_cell_number = find_next_cell_for_mac(this_cell_number, ++checked_cells, size, use_improved_method);
 					if (checking_cell_number != -1) {
 						checking_cell = cellArray[checking_cell_number];
 						checking_node = cellArray[checking_cell_number].ResidentList[0];
@@ -376,15 +343,13 @@ void* loop_thread(void* args) {
 	}
 }
 
-void* loop_thread_with_drawing(void* args) {
-	ltad* loop = (ltad*)args;
-	cell* cellArray = loop->cells;
-	protected_int* cellCounter = loop->cellCounter;
-	protected_int* finished_threads = loop->finished_threads;
+void* loop_with_drawing_for_mac(void* args) {
+	ladfm* loop = (ladfm*)args;
+	cell_for_mac* cellArray = loop->cells;
+	int cellCounter = loop->cellCounter;
 	int div = loop->div;
 	int size = ceil(loop->size);
-	int this_thread_number = loop->this_thread_number;
-	neighborhood* nh = loop->nh;
+	neighborhood_for_mac* nh = loop->nh;
 	double kh = loop->kh;
 	double L = loop->L;
 	double scale = loop->scale;
@@ -393,10 +358,9 @@ void* loop_thread_with_drawing(void* args) {
 	int use_verlet = loop->use_verlet;
 	int use_cells = loop->use_cells;
 	int use_improved_method = loop->use_improved_method;
-	int nThreads = loop->nThreads;
 	double points_width = 0.02;
 	char name[32];
-	snprintf(name, sizeof(name), "Neighborhood: thread %i", this_thread_number);
+	snprintf(name, sizeof(name), "Neighborhood: loop");
 	bov_window_t* window = NULL;
 	if (DRAWING) {
 		window = bov_window_new(400, 400, name);
@@ -529,10 +493,7 @@ void* loop_thread_with_drawing(void* args) {
 	}
 	unsigned long frameCount = 0;
 	int i, j;
-	if (use_cells && !(use_verlet && iterations))
-		i = 0;
-	else
-		i = (int)(this_thread_number * ((double)nPoints) / nThreads);
+	i = 0;
 	if (use_improved_method)
 		j = i + 1;
 	else
@@ -543,18 +504,18 @@ void* loop_thread_with_drawing(void* args) {
 	int checking_cell_number = -1;
 	int this_cell_number = -1;
 	int checked_cells = 0;
-	cell checking_cell;
-	node checking_node;
-	neighbours checking_neighbours;
-	cell this_cell;
-	node this_node;
+	cell_for_mac checking_cell;
+	node_for_mac checking_node;
+	neighbours_for_mac checking_neighbours;
+	cell_for_mac this_cell;
+	node_for_mac this_node;
 	int i_check = i - 1;
 	int j_check = j - 1;
 	int f_check = 1;
 	int are_still_neighbours = 1;
 	if (!DRAWING)
 		div = 1;
-	while ((!DRAWING || !bov_window_should_close(window)) && ((!(use_cells && !(use_verlet && iterations)) && i < ((int)((this_thread_number + 1) * ((double)nPoints) / nThreads))) || (use_cells && !(use_verlet && iterations))) && this_cell_number < size * size) {
+	while ((!DRAWING || !bov_window_should_close(window)) && i<nPoints && this_cell_number < size * size) {
 		if (i != i_check) {
 			nValid = 0;
 			nInvalid = 0;
@@ -576,9 +537,12 @@ void* loop_thread_with_drawing(void* args) {
 			}
 			else if (use_cells) {
 				if (i == 0) {
-					this_cell_number = protected_get_inc(cellCounter);
-					while (!cellArray[this_cell_number].nResident && this_cell_number < size * size)
-						this_cell_number = protected_get_inc(cellCounter);
+					this_cell_number = cellCounter;
+					cellCounter++;
+					while (!cellArray[this_cell_number].nResident && this_cell_number < size * size) {
+						this_cell_number = cellCounter;
+						cellCounter++;
+					}
 					if (this_cell_number < size * size) {
 						this_cell = cellArray[this_cell_number];
 						this_node = this_cell.ResidentList[0];
@@ -588,9 +552,12 @@ void* loop_thread_with_drawing(void* args) {
 					if (this_node.next)
 						this_node = *this_node.next;
 					else {
-						this_cell_number = protected_get_inc(cellCounter);
-						while (this_cell_number < size * size && !cellArray[this_cell_number].nResident && !cellArray[this_cell_number].ResidentList)
-							this_cell_number = protected_get_inc(cellCounter);
+						this_cell_number = cellCounter;
+						cellCounter++;
+						while (this_cell_number < size * size && !cellArray[this_cell_number].nResident && !cellArray[this_cell_number].ResidentList) {
+							this_cell_number = cellCounter;
+							cellCounter++;
+						}
 						if (this_cell_number < size * size) {
 							this_cell = cellArray[this_cell_number];
 							this_node = this_cell.ResidentList[0];
@@ -605,9 +572,9 @@ void* loop_thread_with_drawing(void* args) {
 						checking_node = *this_node.next;
 					}
 					else {
-						checking_cell_number = find_next_cell(this_cell_number, ++checked_cells, size, use_improved_method);
+						checking_cell_number = find_next_cell_for_mac(this_cell_number, ++checked_cells, size, use_improved_method);
 						while (checking_cell_number != -1 && !cellArray[checking_cell_number].nResident && !cellArray[checking_cell_number].ResidentList)
-							checking_cell_number = find_next_cell(this_cell_number, ++checked_cells, size, use_improved_method);
+							checking_cell_number = find_next_cell_for_mac(this_cell_number, ++checked_cells, size, use_improved_method);
 						if (checking_cell_number != -1) {
 							checking_cell = cellArray[checking_cell_number];
 							checking_node = checking_cell.ResidentList[0];
@@ -615,9 +582,9 @@ void* loop_thread_with_drawing(void* args) {
 					}
 				}
 				else if (this_cell_number < size * size) {
-					checking_cell_number = find_next_cell(this_cell_number, checked_cells, size, use_improved_method);
+					checking_cell_number = find_next_cell_for_mac(this_cell_number, checked_cells, size, use_improved_method);
 					while (checking_cell_number != -1 && !cellArray[checking_cell_number].nResident && !cellArray[checking_cell_number].ResidentList)
-						checking_cell_number = find_next_cell(this_cell_number, ++checked_cells, size, use_improved_method);
+						checking_cell_number = find_next_cell_for_mac(this_cell_number, ++checked_cells, size, use_improved_method);
 					if (checking_cell_number != -1) {
 						checking_cell = cellArray[checking_cell_number];
 						checking_node = checking_cell.ResidentList[0];
@@ -641,7 +608,7 @@ void* loop_thread_with_drawing(void* args) {
 					if (use_cells && !(use_verlet && iterations))
 						tabFinished[i] = this_node.index;
 					else
-						tabFinished[i - (int)(this_thread_number * ((double)nPoints) / nThreads)] = i;
+						tabFinished[i] = i;
 					finished_order = bov_order_partial_update(finished_order, tabFinished, 0, i, 0);
 				}
 				if (!(use_verlet && iterations)) {
@@ -678,9 +645,9 @@ void* loop_thread_with_drawing(void* args) {
 					nValid++;
 					bov_order_partial_update(valid_order, tabValid, 0, nValid, 0);
 				}
-				neighbours_new(index_j, nh, index_i, distance, !iterations, 0);
+				neighbours_new_for_mac(index_j, nh, index_i, distance, !iterations, 0);
 				if (use_improved_method)
-					neighbours_new(index_i, nh, index_j, distance, 0, 0);
+					neighbours_new_for_mac(index_i, nh, index_j, distance, 0, 0);
 			}
 			else if (use_verlet && !iterations && distance <= (kh + L) && index_i != index_j) {
 				if (DRAWING) {
@@ -688,9 +655,9 @@ void* loop_thread_with_drawing(void* args) {
 					nVerlet++;
 					bov_order_partial_update(verlet_order, tabVerlet, 0, nVerlet, 0);
 				}
-				neighbours_new(index_j, nh, index_i, distance, !iterations, 1);
+				neighbours_new_for_mac(index_j, nh, index_i, distance, !iterations, 1);
 				if (use_improved_method)
-					neighbours_new(index_i, nh, index_j, distance, 0, 1);
+					neighbours_new_for_mac(index_i, nh, index_j, distance, 0, 1);
 			}
 			else if (DRAWING) {
 				tabInvalid[nInvalid] = index_j;
@@ -708,9 +675,9 @@ void* loop_thread_with_drawing(void* args) {
 				if (checking_node.next)
 					checking_node = *(checking_node.next);
 				else {
-					checking_cell_number = find_next_cell(this_cell_number, ++checked_cells, size, use_improved_method);
+					checking_cell_number = find_next_cell_for_mac(this_cell_number, ++checked_cells, size, use_improved_method);
 					while (checking_cell_number != -1 && !cellArray[checking_cell_number].nResident && !cellArray[checking_cell_number].ResidentList)
-						checking_cell_number = find_next_cell(this_cell_number, ++checked_cells, size, use_improved_method);
+						checking_cell_number = find_next_cell_for_mac(this_cell_number, ++checked_cells, size, use_improved_method);
 					if (checking_cell_number != -1) {
 						checking_cell = cellArray[checking_cell_number];
 						checking_node = cellArray[checking_cell_number].ResidentList[0];
@@ -730,10 +697,7 @@ void* loop_thread_with_drawing(void* args) {
 			if (use_verlet)
 				bov_points_draw_with_order(window, verlet_points, verlet_order, 0, nVerlet);
 			if (use_improved_method)
-				if (use_cells)
 					bov_points_draw_with_order(window, finished_points, finished_order, 0, i);
-				else
-					bov_points_draw_with_order(window, finished_points, finished_order, 0, i - (int)(this_thread_number * ((double)nPoints) / nThreads));
 			bov_line_loop_draw(window, pointset, 0, BOV_TILL_END);
 			if (use_cells)
 				bov_lines_draw(window, gridPoint, 0, BOV_TILL_END);
@@ -772,11 +736,10 @@ void* loop_thread_with_drawing(void* args) {
 	bov_points_delete(unchecked_points);
 	if (use_cells)
 		bov_points_delete(gridPoint);
-	protected_inc(finished_threads);
 	return(window);
 }
 
-int find_next_cell(int this_cell, int checked_cells, int size, int improve) {
+int find_next_cell_for_mac(int this_cell, int checked_cells, int size, int improve) {
 	if (this_cell == 0) {
 		if (checked_cells != 4)
 			return this_cell + checked_cells / 2 * size + checked_cells % 2;
@@ -825,7 +788,7 @@ int find_next_cell(int this_cell, int checked_cells, int size, int improve) {
 }
 
 //Fills the data vector
-void fillData(GLfloat(*data)[8], GLfloat(*coord)[2], int nPoints)
+void fillData_for_mac(GLfloat(*data)[8], GLfloat(*coord)[2], int nPoints)
 {
 	float rmax = 100.0 * sqrtf(2.0f);
 	for (int i = 0; i < NPTS; i++) {
@@ -838,7 +801,7 @@ void fillData(GLfloat(*data)[8], GLfloat(*coord)[2], int nPoints)
 		//data[i][3] = 0; // speed y (not used by default visualization)
 		data[i][2] = rand() * 2.0 / RAND_MAX - 1.0; //Random starting speed
 		data[i][3] = rand() * 2.0 / RAND_MAX - 1.0; //Random starting speed
-		colormap(r / rmax, &data[i][4]); // fill color
+		colormap_for_mac(r / rmax, &data[i][4]); // fill color
 		data[i][7] = 0.8f; // transparency
 	}
 }
@@ -848,7 +811,7 @@ void fillData(GLfloat(*data)[8], GLfloat(*coord)[2], int nPoints)
 //	-xmin,xmax,ymin,ymax: boundaries of the domain
 //	-maxspeed: the maximum speed that can be reached by the particles
 
-void bouncyrandomupdate(GLfloat(*data)[8], GLfloat(*coord)[2], double timestep, double xmin, double xmax, double ymin, double ymax, double maxspeed) {
+void bouncyrandomupdate_for_mac(GLfloat(*data)[8], GLfloat(*coord)[2], double timestep, double xmin, double xmax, double ymin, double ymax, double maxspeed) {
 	for (int i = 0; i < NPTS; i++) {
 		double speed = sqrtf(data[i][2] * data[i][2] + data[i][3] * data[i][3]);
 		data[i][0] += data[i][2] * timestep;
@@ -888,7 +851,7 @@ void bouncyrandomupdate(GLfloat(*data)[8], GLfloat(*coord)[2], double timestep, 
 	}
 }
 
-int compute_optimal_verlet(double timestep, double maxspeed, double kh) {
+int compute_optimal_verlet_for_mac(double timestep, double maxspeed, double kh) {
 	double a = -M_PI * 4 * timestep * timestep * maxspeed * maxspeed;
 
 	double b = -4 * (M_PI * timestep * kh * maxspeed - 9 * maxspeed * maxspeed * timestep * timestep);
@@ -918,7 +881,7 @@ int compute_optimal_verlet(double timestep, double maxspeed, double kh) {
 	}
 }
 
-neighborhood** create_neighborhood_with_drawing(GLfloat(*data)[8], GLfloat(*coord)[2], int iter, int data_filled, int nPoints, int use_cells, int use_improved_method, int radius_algorithm, int search_neighborhood, int use_verlet, int use_threads, int nThreads, unsigned int seed) {
+neighborhood_for_mac** create_neighborhood_with_drawing_for_mac(GLfloat(*data)[8], GLfloat(*coord)[2], int iter, int data_filled, int nPoints, int use_cells, int use_improved_method, int radius_algorithm, int search_neighborhood, int use_verlet, unsigned int seed) {
 	//Defining the domain
 	int xmax = 100;
 	int xmin = -100;
@@ -943,18 +906,6 @@ neighborhood** create_neighborhood_with_drawing(GLfloat(*data)[8], GLfloat(*coor
 	if (!data_filled)
 		fillData(data, coord, nPoints);
 
-	pthread_t* threads = NULL;
-	use_threads = use_threads && nThreads >= 1;
-	if (use_threads) {
-		if (nPoints < nThreads)
-			nThreads = nPoints;
-	}
-	else {
-		use_threads = 1;
-		nThreads = 1;
-	}
-	threads = malloc(nThreads * sizeof(pthread_t));
-	CHECK_MALLOC(threads);
 	double kh = KH;
 	if (kh == 0)
 		kh = compute_kh(nPoints, radius_algorithm) * (xmax - xmin);
@@ -1005,7 +956,7 @@ neighborhood** create_neighborhood_with_drawing(GLfloat(*data)[8], GLfloat(*coor
 	.scale = {1.0, 1.0},
 	.width = 0.005
 	};
-	cell* cellArray = NULL;
+	cell_for_mac* cellArray = NULL;
 	double size = (xmax - xmin) / (kh + L);
 	double cellLength = (xmax - xmin) / (size);
 	use_cells = use_cells && (kh + L) < (xmax - xmin) / 3.0;
@@ -1019,71 +970,52 @@ neighborhood** create_neighborhood_with_drawing(GLfloat(*data)[8], GLfloat(*coor
 	bov_points_scale(pointset, (GLfloat[2]) { scale, scale });
 	bov_points_set_pos(pointset, (GLfloat[2]) { 0.0, -0.1 });
 
-	protected_int* cellCounter = NULL;
-	if (use_cells) {
-		cellCounter = malloc(sizeof(protected_int));
-		CHECK_MALLOC(cellCounter);
-		cellCounter->mutex = PTHREAD_MUTEX_INITIALIZER;
-		cellCounter->var = 0;
-	}
-	neighborhood** list_of_neighborhood = malloc(iter * sizeof(neighborhood*));
+	int cellCounter = 0;
+	neighborhood_for_mac** list_of_neighborhood = malloc(iter * sizeof(neighborhood_for_mac*));
 	CHECK_MALLOC(list_of_neighborhood);
-	protected_int* finished_threads = malloc(sizeof(protected_int));
-	CHECK_MALLOC(finished_threads);
-	finished_threads->mutex = PTHREAD_MUTEX_INITIALIZER;
-	finished_threads->var = 0;
 	int iterations = 0;
-	ltad** loop = malloc(nThreads * sizeof(ltad*));
+	ladfm* loop = malloc(sizeof(ladfm));
 	CHECK_MALLOC(loop);
-	for (int i = 0; i < nThreads; i++) {
-		loop[i] = malloc(sizeof(ltad));
-		CHECK_MALLOC(loop[i]);
-	}
 	while (iterations < iter) {
 		if (search_neighborhood) {
-			neighborhood* nh;
+			neighborhood_for_mac* nh;
 			if (use_verlet && (iterations % optimal_verlet_steps))
-				nh = neighborhood_new(nPoints, list_of_neighborhood[iterations - 1]);
+				nh = neighborhood_new_for_mac(nPoints, list_of_neighborhood[iterations - 1]);
 			else
-				nh = neighborhood_new(nPoints, NULL);
+				nh = neighborhood_new_for_mac(nPoints, NULL);
 
 			if (use_cells) {
-				protected_reset(cellCounter);
-				cellArray = cell_new(ceil(size) * ceil(size));
+				cellCounter = 0;
+				cellArray = cell_new_for_mac(ceil(size) * ceil(size));
 				for (int i = 0; i < nPoints; i++) {
 					int cellNumber = ((int)((coord[i][1] - xmin) / (xmax - xmin) * size) * ceil(size) + (int)((coord[i][0] - xmin) / (xmax - xmin) * size));
 					if (data[i][1] == xmax)
 						cellNumber -= size;
 					if (data[i][0] == xmax)
 						cellNumber -= 1;
-					node_new(cellArray, cellNumber, i);
+					node_new_for_mac(cellArray, cellNumber, i);
 				}
 			}
-			for (int i = 0; i < nThreads; i++) {
-				loop[i]->cells = cellArray;
-				loop[i]->use_cells = use_cells;
-				loop[i]->use_verlet = use_verlet;
-				loop[i]->use_improved_method = use_improved_method;
-				loop[i]->div = div;
-				loop[i]->size = size;
-				loop[i]->nh = nh;
-				loop[i]->kh = kh;
-				loop[i]->L = L;
-				loop[i]->nPoints = nPoints;
-				loop[i]->coord = coord;
-				loop[i]->data = data;
-				loop[i]->nThreads = nThreads;
-				loop[i]->this_thread_number = i;
-				loop[i]->scale = scale;
-				loop[i]->cellCounter = cellCounter;
-				loop[i]->finished_threads = finished_threads;
+				loop->cells = cellArray;
+				loop->use_cells = use_cells;
+				loop->use_verlet = use_verlet;
+				loop->use_improved_method = use_improved_method;
+				loop->div = div;
+				loop->size = size;
+				loop->nh = nh;
+				loop->kh = kh;
+				loop->L = L;
+				loop->nPoints = nPoints;
+				loop->coord = coord;
+				loop->data = data;
+				loop->scale = scale;
+				loop->cellCounter = cellCounter;
 				if (use_verlet)
-					loop[i]->iterations = iterations % optimal_verlet_steps;
+					loop->iterations = iterations % optimal_verlet_steps;
 				else
-					loop[i]->iterations = 0;
-				pthread_create(&threads[i], NULL, loop_thread_with_drawing, loop[i]);
-			}
-			while (!bov_window_should_close(window) && protected_get(finished_threads) != nThreads) {
+					loop->iterations = 0;
+				loop_with_drawing_for_mac(loop);
+			while (!bov_window_should_close(window)) {
 				bov_particles_draw(window, particles, 0, BOV_TILL_END);
 				bov_text_draw(window, msg);
 				bov_line_loop_draw(window, pointset, 0, BOV_TILL_END);
@@ -1091,21 +1023,13 @@ neighborhood** create_neighborhood_with_drawing(GLfloat(*data)[8], GLfloat(*coor
 					bov_lines_draw(window, gridPoint, 0, BOV_TILL_END);
 				bov_window_update(window);
 			}
-			protected_reset(finished_threads);
 			// Moves the particles around
 			if (use_cells)
-				cell_delete(cellArray, ceil(size) * ceil(size));
-
-			void** retval = malloc(nThreads * sizeof(void*));
-			for (int i = 0; i < nThreads; i++) {
-				pthread_join(threads[i], &(retval[i]));
-				free(retval[i]);
-			}
-			free(retval);
+				cell_delete_for_mac(cellArray, ceil(size) * ceil(size));
 
 			list_of_neighborhood[iterations] = nh;
 		}
-		bouncyrandomupdate(data, coord, 1, -100, 100, -100, 100, 2);
+		bouncyrandomupdate_for_mac(data, coord, 1, -100, 100, -100, 100, 2);
 		particles = bov_particles_update(particles, data, NPTS);
 		bov_particles_draw(window, particles, 0, BOV_TILL_END);
 		bov_text_draw(window, msg);
@@ -1115,19 +1039,12 @@ neighborhood** create_neighborhood_with_drawing(GLfloat(*data)[8], GLfloat(*coor
 		bov_window_update(window);
 		iterations++;
 	}
-	for (int i = 0; i < nThreads; i++)
-		free(loop[i]);
 	free(loop);
 
 	if (use_cells) {
-		pthread_mutex_destroy(&(cellCounter->mutex));
-		free(cellCounter);
 		bov_points_delete(gridPoint);
 	}
 
-	pthread_mutex_destroy(&(finished_threads->mutex));
-	free(finished_threads);
-	free(threads);
 
 	bov_points_delete(pointset);
 	bov_text_delete(msg);
@@ -1137,7 +1054,7 @@ neighborhood** create_neighborhood_with_drawing(GLfloat(*data)[8], GLfloat(*coor
 	return list_of_neighborhood;
 }
 
-neighborhood** create_neighborhood(GLfloat(*data)[8], GLfloat(*coord)[2], int iter, int data_filled, int nPoints, int use_cells, int use_improved_method, int radius_algorithm, int use_verlet, int use_threads, int nThreads, unsigned int seed)
+neighborhood_for_mac** create_neighborhood_for_mac(GLfloat(*data)[8], GLfloat(*coord)[2], int iter, int data_filled, int nPoints, int use_cells, int use_improved_method, int radius_algorithm, int use_verlet, unsigned int seed)
 {
 	//Defining the domain
 	int xmax = 100;
@@ -1157,25 +1074,14 @@ neighborhood** create_neighborhood(GLfloat(*data)[8], GLfloat(*coord)[2], int it
 	}
 	srand(seed);
 	if (!data_filled)
-		fillData(data, coord, nPoints);
-	pthread_t* threads = NULL;
-	use_threads = use_threads && nThreads >= 1;
-	if (use_threads) {
-		if (nPoints < nThreads)
-			nThreads = nPoints;
-	}
-	else {
-		use_threads = 1;
-		nThreads = 1;
-	}
-	threads = malloc(nThreads * sizeof(pthread_t));
-	CHECK_MALLOC(threads);
+		fillData_for_mac(data, coord, nPoints);
+
 	double kh = KH;
 	if (kh == 0)
-		kh = compute_kh(nPoints, radius_algorithm) * (xmax - xmin);
+		kh = compute_kh_for_mac(nPoints, radius_algorithm) * (xmax - xmin);
 	double L = 0.0;
 	if (use_verlet == 1) {
-		optimal_verlet_steps = compute_optimal_verlet(timestep, maxspeed, kh);
+		optimal_verlet_steps = compute_optimal_verlet_for_mac(timestep, maxspeed, kh);
 		if (optimal_verlet_steps == -1) { use_verlet = 0; }
 		else { L = optimal_verlet_steps * timestep * maxspeed; }
 	}
@@ -1184,106 +1090,81 @@ neighborhood** create_neighborhood(GLfloat(*data)[8], GLfloat(*coord)[2], int it
 	double width = (xmax - xmin) / (kh + L);
 	double height = (ymax - ymin) / (kh + L);
 
-	cell* cellArray = NULL;
+	cell_for_mac* cellArray = NULL;
 	double size = (xmax - xmin) / (kh + L);
 	double cellLength = (xmax - xmin) / (size);
 	use_cells = use_cells && (kh + L) < (xmax - xmin) / 3.0;
-	protected_int* cellCounter = NULL;
-	if (use_cells) {
-		cellCounter = malloc(sizeof(protected_int));
-		CHECK_MALLOC(cellCounter);
-		cellCounter->mutex = PTHREAD_MUTEX_INITIALIZER;
-		cellCounter->var = 0;
-	}
-	neighborhood** list_of_neighborhood = malloc(iter * sizeof(neighborhood*));
+	int cellCounter = 0;
+	neighborhood_for_mac** list_of_neighborhood = malloc(iter * sizeof(neighborhood_for_mac*));
 	CHECK_MALLOC(list_of_neighborhood);
 	int iterations = 0;
 
-	lta** loop = malloc(nThreads * sizeof(lta*));
+	lafm* loop = malloc(sizeof(lafm));
 	CHECK_MALLOC(loop);
-	for (int i = 0; i < nThreads; i++) {
-		loop[i] = malloc(sizeof(lta));
-		CHECK_MALLOC(loop[i]);
-	}
 	while (iterations < iter) {
-		neighborhood* nh;
+		neighborhood_for_mac* nh;
 		if (use_verlet && (iterations % optimal_verlet_steps))
-			nh = neighborhood_new(nPoints, list_of_neighborhood[iterations - 1]);
+			nh = neighborhood_new_for_mac(nPoints, list_of_neighborhood[iterations - 1]);
 		else
-			nh = neighborhood_new(nPoints, NULL);
+			nh = neighborhood_new_for_mac(nPoints, NULL);
 
 		if (use_cells) {
-			protected_reset(cellCounter);
-			cellArray = cell_new(ceil(size) * ceil(size));
+			cellCounter=0;
+			cellArray = cell_new_for_mac(ceil(size) * ceil(size));
 			for (int i = 0; i < nPoints; i++) {
 				int cellNumber = ((int)((coord[i][1] - xmin) / (xmax - xmin) * size) * ceil(size) + (int)((coord[i][0] - xmin) / (xmax - xmin) * size));
 				if (data[i][1] == xmax)
 					cellNumber -= size;
 				if (data[i][0] == xmax)
 					cellNumber -= 1;
-				node_new(cellArray, cellNumber, i);
+				node_new_for_mac(cellArray, cellNumber, i);
 			}
 		}
-		for (int i = 0; i < nThreads; i++) {
-			loop[i]->cells = cellArray;
-			loop[i]->use_cells = use_cells;
-			loop[i]->use_verlet = use_verlet;
-			loop[i]->use_improved_method = use_improved_method;
-			loop[i]->size = size;
-			loop[i]->nh = nh;
-			loop[i]->kh = kh;
-			loop[i]->L = L;
-			loop[i]->nPoints = nPoints;
-			loop[i]->coord = coord;
-			loop[i]->data = data;
-			loop[i]->nThreads = nThreads;
-			loop[i]->this_thread_number = i;
-			loop[i]->cellCounter = cellCounter;
+			loop->cells = cellArray;
+			loop->use_cells = use_cells;
+			loop->use_verlet = use_verlet;
+			loop->use_improved_method = use_improved_method;
+			loop->size = size;
+			loop->nh = nh;
+			loop->kh = kh;
+			loop->L = L;
+			loop->nPoints = nPoints;
+			loop->coord = coord;
+			loop->data = data;
+			loop->cellCounter = cellCounter;
 			if (use_verlet)
-				loop[i]->iterations = iterations % optimal_verlet_steps;
+				loop->iterations = iterations % optimal_verlet_steps;
 			else
-				loop[i]->iterations = 0;
-			pthread_create(&threads[i], NULL, loop_thread, loop[i]);
-		}
-		for (int i = 0; i < nThreads; i++) {
-			pthread_join(threads[i], NULL);
-		}
+				loop->iterations = 0;
+		loop_without_drawing_for_mac(loop);
 		// Moves the particles around
 		if (use_cells)
-			cell_delete(cellArray, ceil(size) * ceil(size));
+			cell_delete_for_mac(cellArray, ceil(size) * ceil(size));
 		list_of_neighborhood[iterations] = nh;
-		bouncyrandomupdate(data, coord, 1, -100, 100, -100, 100, 2);
+		bouncyrandomupdate_for_mac(data, coord, 1, -100, 100, -100, 100, 2);
 		iterations++;
 	}
 
-	for (int i = 0; i < nThreads; i++)
-		free(loop[i]);
 	free(loop);
-
-	if (use_cells) {
-		pthread_mutex_destroy(&(cellCounter->mutex));
-		free(cellCounter);
-	}
-	free(threads);
 	return list_of_neighborhood;
 }
 
-int compare_neighborhood_lists(neighborhood** nhList_1, neighborhood** nhList_2, int iter, int nPoints) {
+int compare_neighborhood_lists_for_mac(neighborhood_for_mac** nhList_1, neighborhood_for_mac** nhList_2, int iter, int nPoints) {
 	int is_equal = 0;
 	for (int i = 0; (i < iter) && !is_equal; i++) {
-		is_equal = compare_neighborhoods(nhList_1[i], nhList_2[i], nPoints);
+		is_equal = compare_neighborhoods_for_mac(nhList_1[i], nhList_2[i], nPoints);
 	}
 	return is_equal;
 }
 
-int compare_neighborhoods(neighborhood* nh_1, neighborhood* nh_2, int nPoints) {
+int compare_neighborhoods_for_mac(neighborhood_for_mac* nh_1, neighborhood_for_mac* nh_2, int nPoints) {
 	for (int i = 0; i < nPoints; i++) {
 		if (nh_1[i].nNeighbours != nh_2[i].nNeighbours)
 			return 0;
-		neighbours* current = NULL;
+		neighbours_for_mac* current = NULL;
 		for (current = nh_1[i].list; current; current = current->next) {
 			int is_equal = 0;
-			neighbours* temp = NULL;
+			neighbours_for_mac* temp = NULL;
 			for (temp = nh_2[i].list; temp && !is_equal; temp = temp->next) {
 				is_equal = current->index == temp->index;
 			}
@@ -1295,7 +1176,7 @@ int compare_neighborhoods(neighborhood* nh_1, neighborhood* nh_2, int nPoints) {
 	return 1;
 }
 
-void show_equivalence_of_major_algorithm_combination(int drawing) {
+void show_equivalence_of_major_algorithm_combination_for_mac(int drawing) {
 	GLfloat(*data)[8] = malloc(sizeof(data[0]) * NPTS);
 	CHECK_MALLOC(data);
 	GLfloat(*coord)[2] = malloc(sizeof(coord[0]) * NPTS);
@@ -1306,124 +1187,124 @@ void show_equivalence_of_major_algorithm_combination(int drawing) {
 	printf(" %u ", seed);
 	srand(seed);
 
-	neighborhood** nhList0, ** nhList1, ** nhList2, ** nhList3, ** nhList4, ** nhList5, ** nhList6, ** nhList7, ** nhList8, ** nhList9, ** nhList10, ** nhList11, ** nhList12, ** nhList13, ** nhList14, ** nhList15;
+	neighborhood_for_mac** nhList0, ** nhList1, ** nhList2, ** nhList3, ** nhList4, ** nhList5, ** nhList6, ** nhList7, ** nhList8, ** nhList9, ** nhList10, ** nhList11, ** nhList12, ** nhList13, ** nhList14, ** nhList15;
 	
-	/* Takes way more time and memory, especially when using threads, but is supposed to give the same result as whithout drawing*/
+	/* Takes way more time and memory, but is supposed to give the same result as whithout drawing*/
 	if (drawing) {
-		nhList0 = create_neighborhood_with_drawing(data, coord, MAX_ITER, 0, NPTS, 1, 1, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 1, 1, NTHREADS, seed);
-		nhList1 = create_neighborhood_with_drawing(data, coord, MAX_ITER, 0, NPTS, 1, 1, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 1, 0, 1, seed);
-		nhList2 = create_neighborhood_with_drawing(data, coord, MAX_ITER, 0, NPTS, 1, 1, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 0, 1, NTHREADS, seed);
-		nhList3 = create_neighborhood_with_drawing(data, coord, MAX_ITER, 0, NPTS, 1, 1, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 0, 0, 1, seed);
-		nhList4 = create_neighborhood_with_drawing(data, coord, MAX_ITER, 0, NPTS, 1, 0, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 1, 1, NTHREADS, seed);
-		nhList5 = create_neighborhood_with_drawing(data, coord, MAX_ITER, 0, NPTS, 1, 0, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 1, 0, 1, seed);
-		nhList6 = create_neighborhood_with_drawing(data, coord, MAX_ITER, 0, NPTS, 1, 0, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 0, 1, NTHREADS, seed);
-		nhList7 = create_neighborhood_with_drawing(data, coord, MAX_ITER, 0, NPTS, 1, 0, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 0, 0, 1, seed);
-		nhList8 = create_neighborhood_with_drawing(data, coord, MAX_ITER, 0, NPTS, 0, 1, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 1, 1, NTHREADS, seed);
-		nhList9 = create_neighborhood_with_drawing(data, coord, MAX_ITER, 0, NPTS, 0, 1, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 1, 0, 1, seed);
-		nhList10 = create_neighborhood_with_drawing(data, coord, MAX_ITER, 0, NPTS, 0, 1, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 0, 1, NTHREADS, seed);
-		nhList11 = create_neighborhood_with_drawing(data, coord, MAX_ITER, 0, NPTS, 0, 1, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 0, 0, 1, seed);
-		nhList12 = create_neighborhood_with_drawing(data, coord, MAX_ITER, 0, NPTS, 0, 0, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 1, 1, NTHREADS, seed);
-		nhList13 = create_neighborhood_with_drawing(data, coord, MAX_ITER, 0, NPTS, 0, 0, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 1, 0, 1, seed);
-		nhList14 = create_neighborhood_with_drawing(data, coord, MAX_ITER, 0, NPTS, 0, 0, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 0, 1, NTHREADS, seed);
-		nhList15 = create_neighborhood_with_drawing(data, coord, MAX_ITER, 0, NPTS, 0, 0, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 0, 0, 1, seed);
+		nhList0 = create_neighborhood_with_drawing_for_mac(data, coord, MAX_ITER, 0, NPTS, 1, 1, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 1, seed);
+		nhList1 = create_neighborhood_with_drawing_for_mac(data, coord, MAX_ITER, 0, NPTS, 1, 1, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 1, seed);
+		nhList2 = create_neighborhood_with_drawing_for_mac(data, coord, MAX_ITER, 0, NPTS, 1, 1, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 0, seed);
+		nhList3 = create_neighborhood_with_drawing_for_mac(data, coord, MAX_ITER, 0, NPTS, 1, 1, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 0, 0, 1, seed);
+		nhList4 = create_neighborhood_with_drawing_for_mac(data, coord, MAX_ITER, 0, NPTS, 1, 0, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 1, seed);
+		nhList5 = create_neighborhood_with_drawing_for_mac(data, coord, MAX_ITER, 0, NPTS, 1, 0, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 1, seed);
+		nhList6 = create_neighborhood_with_drawing_for_mac(data, coord, MAX_ITER, 0, NPTS, 1, 0, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 0, seed);
+		nhList7 = create_neighborhood_with_drawing_for_mac(data, coord, MAX_ITER, 0, NPTS, 1, 0, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 0, seed);
+		nhList8 = create_neighborhood_with_drawing_for_mac(data, coord, MAX_ITER, 0, NPTS, 0, 1, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 1, seed);
+		nhList9 = create_neighborhood_with_drawing_for_mac(data, coord, MAX_ITER, 0, NPTS, 0, 1, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 1, seed);
+		nhList10 = create_neighborhood_with_drawing_for_mac(data, coord, MAX_ITER, 0, NPTS, 0, 1, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 0, seed);
+		nhList11 = create_neighborhood_with_drawing_for_mac(data, coord, MAX_ITER, 0, NPTS, 0, 1, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 0, seed);
+		nhList12 = create_neighborhood_with_drawing_for_mac(data, coord, MAX_ITER, 0, NPTS, 0, 0, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 1, seed);
+		nhList13 = create_neighborhood_with_drawing_for_mac(data, coord, MAX_ITER, 0, NPTS, 0, 0, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 1, seed);
+		nhList14 = create_neighborhood_with_drawing_for_mac(data, coord, MAX_ITER, 0, NPTS, 0, 0, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 0, seed);
+		nhList15 = create_neighborhood_with_drawing_for_mac(data, coord, MAX_ITER, 0, NPTS, 0, 0, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, 0, seed);
 	}
 	else {
-		nhList0 = create_neighborhood(data, coord, MAX_ITER, 0, NPTS, 1, 1, RADIUS_ALGORITHM, 1, 1, NTHREADS, seed);
-		nhList1 = create_neighborhood(data, coord, MAX_ITER, 0, NPTS, 1, 1, RADIUS_ALGORITHM, 1, 0, 1, seed);
-		nhList2 = create_neighborhood(data, coord, MAX_ITER, 0, NPTS, 1, 1, RADIUS_ALGORITHM, 0, 1, NTHREADS, seed);
-		nhList3 = create_neighborhood(data, coord, MAX_ITER, 0, NPTS, 1, 1, RADIUS_ALGORITHM, 0, 0, 1, seed);
-		nhList4 = create_neighborhood(data, coord, MAX_ITER, 0, NPTS, 1, 0, RADIUS_ALGORITHM, 1, 1, NTHREADS, seed);
-		nhList5 = create_neighborhood(data, coord, MAX_ITER, 0, NPTS, 1, 0, RADIUS_ALGORITHM, 1, 0, 1, seed);
-		nhList6 = create_neighborhood(data, coord, MAX_ITER, 0, NPTS, 1, 0, RADIUS_ALGORITHM, 0, 1, NTHREADS, seed);
-		nhList7 = create_neighborhood(data, coord, MAX_ITER, 0, NPTS, 1, 0, RADIUS_ALGORITHM, 0, 0, 1, seed);
-		nhList8 = create_neighborhood(data, coord, MAX_ITER, 0, NPTS, 0, 1, RADIUS_ALGORITHM, 1, 1, NTHREADS, seed);
-		nhList9 = create_neighborhood(data, coord, MAX_ITER, 0, NPTS, 0, 1, RADIUS_ALGORITHM, 1, 0, 1, seed);
-		nhList10 = create_neighborhood(data, coord, MAX_ITER, 0, NPTS, 0, 1, RADIUS_ALGORITHM, 0, 1, NTHREADS, seed);
-		nhList11 = create_neighborhood(data, coord, MAX_ITER, 0, NPTS, 0, 1, RADIUS_ALGORITHM, 0, 0, 1, seed);
-		nhList12 = create_neighborhood(data, coord, MAX_ITER, 0, NPTS, 0, 0, RADIUS_ALGORITHM, 1, 1, NTHREADS, seed);
-		nhList13 = create_neighborhood(data, coord, MAX_ITER, 0, NPTS, 0, 0, RADIUS_ALGORITHM, 1, 0, 1, seed);
-		nhList14 = create_neighborhood(data, coord, MAX_ITER, 0, NPTS, 0, 0, RADIUS_ALGORITHM, 0, 1, NTHREADS, seed);
-		nhList15 = create_neighborhood(data, coord, MAX_ITER, 0, NPTS, 0, 0, RADIUS_ALGORITHM, 0, 0, 1, seed);
+		nhList0 = create_neighborhood_for_mac(data, coord, MAX_ITER, 0, NPTS, 1, 1, RADIUS_ALGORITHM, 1, seed);
+		nhList1 = create_neighborhood_for_mac(data, coord, MAX_ITER, 0, NPTS, 1, 1, RADIUS_ALGORITHM, 1, seed);
+		nhList2 = create_neighborhood_for_mac(data, coord, MAX_ITER, 0, NPTS, 1, 1, RADIUS_ALGORITHM, 0, seed);
+		nhList3 = create_neighborhood_for_mac(data, coord, MAX_ITER, 0, NPTS, 1, 1, RADIUS_ALGORITHM, 0, seed);
+		nhList4 = create_neighborhood_for_mac(data, coord, MAX_ITER, 0, NPTS, 1, 0, RADIUS_ALGORITHM, 1, seed);
+		nhList5 = create_neighborhood_for_mac(data, coord, MAX_ITER, 0, NPTS, 1, 0, RADIUS_ALGORITHM, 1, seed);
+		nhList6 = create_neighborhood_for_mac(data, coord, MAX_ITER, 0, NPTS, 1, 0, RADIUS_ALGORITHM, 0, seed);
+		nhList7 = create_neighborhood_for_mac(data, coord, MAX_ITER, 0, NPTS, 1, 0, RADIUS_ALGORITHM, 0, seed);
+		nhList8 = create_neighborhood_for_mac(data, coord, MAX_ITER, 0, NPTS, 0, 1, RADIUS_ALGORITHM, 1, seed);
+		nhList9 = create_neighborhood_for_mac(data, coord, MAX_ITER, 0, NPTS, 0, 1, RADIUS_ALGORITHM, 1, 0, 1, seed);
+		nhList10 = create_neighborhood_for_mac(data, coord, MAX_ITER, 0, NPTS, 0, 1, RADIUS_ALGORITHM, 0, seed);
+		nhList11 = create_neighborhood_for_mac(data, coord, MAX_ITER, 0, NPTS, 0, 1, RADIUS_ALGORITHM, 0, seed);
+		nhList12 = create_neighborhood_for_mac(data, coord, MAX_ITER, 0, NPTS, 0, 0, RADIUS_ALGORITHM, 1, seed);
+		nhList13 = create_neighborhood_for_mac(data, coord, MAX_ITER, 0, NPTS, 0, 0, RADIUS_ALGORITHM, 1, seed);
+		nhList14 = create_neighborhood_for_mac(data, coord, MAX_ITER, 0, NPTS, 0, 0, RADIUS_ALGORITHM, 0, seed);
+		nhList15 = create_neighborhood_for_mac(data, coord, MAX_ITER, 0, NPTS, 0, 0, RADIUS_ALGORITHM, 0, seed);
 	}
 
 	printf("\n0==1 ?");
-	printf("\n  %i  \n", compare_neighborhood_lists(nhList0, nhList1, MAX_ITER, NPTS));
+	printf("\n  %i  \n", compare_neighborhood_lists_for_mac(nhList0, nhList1, MAX_ITER, NPTS));
 	printf("\n1==2 ?");
-	printf("\n  %i  \n", compare_neighborhood_lists(nhList1, nhList2, MAX_ITER, NPTS));
+	printf("\n  %i  \n", compare_neighborhood_lists_for_mac(nhList1, nhList2, MAX_ITER, NPTS));
 	printf("\n2==3 ?");
-	printf("\n  %i  \n", compare_neighborhood_lists(nhList2, nhList3, MAX_ITER, NPTS));
+	printf("\n  %i  \n", compare_neighborhood_lists_for_mac(nhList2, nhList3, MAX_ITER, NPTS));
 	printf("\n3==4 ?");
-	printf("\n  %i  \n", compare_neighborhood_lists(nhList3, nhList4, MAX_ITER, NPTS));
+	printf("\n  %i  \n", compare_neighborhood_lists_for_mac(nhList3, nhList4, MAX_ITER, NPTS));
 	printf("\n4==5 ?");
-	printf("\n  %i  \n", compare_neighborhood_lists(nhList4, nhList5, MAX_ITER, NPTS));
+	printf("\n  %i  \n", compare_neighborhood_lists_for_mac(nhList4, nhList5, MAX_ITER, NPTS));
 	printf("\n5==6 ?");
-	printf("\n  %i  \n", compare_neighborhood_lists(nhList5, nhList6, MAX_ITER, NPTS));
+	printf("\n  %i  \n", compare_neighborhood_lists_for_mac(nhList5, nhList6, MAX_ITER, NPTS));
 	printf("\n6==7 ?");
-	printf("\n  %i  \n", compare_neighborhood_lists(nhList6, nhList7, MAX_ITER, NPTS));
+	printf("\n  %i  \n", compare_neighborhood_lists_for_mac(nhList6, nhList7, MAX_ITER, NPTS));
 	printf("\n7==8 ?");
-	printf("\n  %i  \n", compare_neighborhood_lists(nhList7, nhList8, MAX_ITER, NPTS));
+	printf("\n  %i  \n", compare_neighborhood_lists_for_mac(nhList7, nhList8, MAX_ITER, NPTS));
 	printf("\n8==9 ?");
-	printf("\n  %i  \n", compare_neighborhood_lists(nhList8, nhList9, MAX_ITER, NPTS));
+	printf("\n  %i  \n", compare_neighborhood_lists_for_mac(nhList8, nhList9, MAX_ITER, NPTS));
 	printf("\n9==10 ?");
-	printf("\n  %i  \n", compare_neighborhood_lists(nhList9, nhList10, MAX_ITER, NPTS));
+	printf("\n  %i  \n", compare_neighborhood_lists_for_mac(nhList9, nhList10, MAX_ITER, NPTS));
 	printf("\n10==11 ?");
-	printf("\n  %i  \n", compare_neighborhood_lists(nhList10, nhList11, MAX_ITER, NPTS));
+	printf("\n  %i  \n", compare_neighborhood_lists_for_mac(nhList10, nhList11, MAX_ITER, NPTS));
 	printf("\n11==12 ?");
-	printf("\n  %i  \n", compare_neighborhood_lists(nhList11, nhList12, MAX_ITER, NPTS));
+	printf("\n  %i  \n", compare_neighborhood_lists_for_mac(nhList11, nhList12, MAX_ITER, NPTS));
 	printf("\n12==13 ?");
-	printf("\n  %i  \n", compare_neighborhood_lists(nhList12, nhList13, MAX_ITER, NPTS));
+	printf("\n  %i  \n", compare_neighborhood_lists_for_mac(nhList12, nhList13, MAX_ITER, NPTS));
 	printf("\n13==14 ?");
-	printf("\n  %i  \n", compare_neighborhood_lists(nhList13, nhList14, MAX_ITER, NPTS));
+	printf("\n  %i  \n", compare_neighborhood_lists_for_mac(nhList13, nhList14, MAX_ITER, NPTS));
 	printf("\n14==15 ?");
-	printf("\n  %i  \n", compare_neighborhood_lists(nhList14, nhList15, MAX_ITER, NPTS));
+	printf("\n  %i  \n", compare_neighborhood_lists_for_mac(nhList14, nhList15, MAX_ITER, NPTS));
 
 	for (int i = 0; i < MAX_ITER; i++) {
-		neighborhood_delete(nhList0[i], NPTS);
+		neighborhood_delete_for_mac(nhList0[i], NPTS);
 	}
 	for (int i = 0; i < MAX_ITER; i++) {
-		neighborhood_delete(nhList1[i], NPTS);
+		neighborhood_delete_for_mac(nhList1[i], NPTS);
 	}
 	for (int i = 0; i < MAX_ITER; i++) {
-		neighborhood_delete(nhList2[i], NPTS);
+		neighborhood_delete_for_mac(nhList2[i], NPTS);
 	}
 	for (int i = 0; i < MAX_ITER; i++) {
-		neighborhood_delete(nhList3[i], NPTS);
+		neighborhood_delete_for_mac(nhList3[i], NPTS);
 	}
 	for (int i = 0; i < MAX_ITER; i++) {
-		neighborhood_delete(nhList4[i], NPTS);
+		neighborhood_delete_for_mac(nhList4[i], NPTS);
 	}
 	for (int i = 0; i < MAX_ITER; i++) {
-		neighborhood_delete(nhList5[i], NPTS);
+		neighborhood_delete_for_mac(nhList5[i], NPTS);
 	}
 	for (int i = 0; i < MAX_ITER; i++) {
-		neighborhood_delete(nhList6[i], NPTS);
+		neighborhood_delete_for_mac(nhList6[i], NPTS);
 	}
 	for (int i = 0; i < MAX_ITER; i++) {
-		neighborhood_delete(nhList7[i], NPTS);
+		neighborhood_delete_for_mac(nhList7[i], NPTS);
 	}
 	for (int i = 0; i < MAX_ITER; i++) {
-		neighborhood_delete(nhList8[i], NPTS);
+		neighborhood_delete_for_mac(nhList8[i], NPTS);
 	}
 	for (int i = 0; i < MAX_ITER; i++) {
-		neighborhood_delete(nhList9[i], NPTS);
+		neighborhood_delete_for_mac(nhList9[i], NPTS);
 	}
 	for (int i = 0; i < MAX_ITER; i++) {
-		neighborhood_delete(nhList10[i], NPTS);
+		neighborhood_delete_for_mac(nhList10[i], NPTS);
 	}
 	for (int i = 0; i < MAX_ITER; i++) {
-		neighborhood_delete(nhList11[i], NPTS);
+		neighborhood_delete_for_mac(nhList11[i], NPTS);
 	}
 	for (int i = 0; i < MAX_ITER; i++) {
-		neighborhood_delete(nhList12[i], NPTS);
+		neighborhood_delete_for_mac(nhList12[i], NPTS);
 	}
 	for (int i = 0; i < MAX_ITER; i++) {
-		neighborhood_delete(nhList13[i], NPTS);
+		neighborhood_delete_for_mac(nhList13[i], NPTS);
 	}
 	for (int i = 0; i < MAX_ITER; i++) {
-		neighborhood_delete(nhList14[i], NPTS);
+		neighborhood_delete_for_mac(nhList14[i], NPTS);
 	}
 	for (int i = 0; i < MAX_ITER; i++) {
-		neighborhood_delete(nhList15[i], NPTS);
+		neighborhood_delete_for_mac(nhList15[i], NPTS);
 	}
 	free(nhList0);
 	free(nhList1);

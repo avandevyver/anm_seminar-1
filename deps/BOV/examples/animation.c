@@ -39,16 +39,8 @@ void transition(bov_points_t* diag, float a[2], float b[2], float x)
 	bov_points_set_pos(diag, a);
 }
 
-void* ran(void* arg) { return arg; }
-
 int main(int argc, char* argv[])
 {
-	pthread_t* threads = NULL;
-	for (int i = 0; i < 4; i++) {
-		pthread_create(&threads[i], NULL, ran, NULL);
-	}
-	for (int i = 0; i < 4; i++)
-		pthread_join(threads[i], NULL);
 	bov_window_t* window = bov_window_new(0, 0, argv[0]);
 	bov_window_enable_help(window);
 

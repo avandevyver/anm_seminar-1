@@ -77,7 +77,9 @@
 #define FULLSCREEN_PROGRAM_INDEX 7
 // #define QUAD_PROGRAM_INDEX     8
 
-
+/* Used to solve a bug when there were multiple thread, see the comment where it is used 
+to see which lines caused the problem*/
+pthread_mutex_t lock_window_part = PTHREAD_MUTEX_INITIALIZER;
 
 
 /*%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -905,9 +907,18 @@ bov_window_t* bov_window_new(int width, int height, const char* win_name)
 	glfwSetWindowUserPointer(window->self,window);
 
 	// load opengl functions with GLAD
+	/*if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+		BOV_ERROR_LOG(BOV_GLAD_ERROR,
+			"Failed to initialize OpenGL context");*/
+	/* We had a bug with the memory allocation when using more than one or two threads
+	so we tried putting it into a mutex to ensure it was only visited by one and it 
+	apparently solved the problem*/
+
+	pthread_mutex_lock(&lock_window_part);
 	if(!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress))
 		BOV_ERROR_LOG(BOV_GLAD_ERROR,
 		              "Failed to initialize OpenGL context");
+	pthread_mutex_unlock(&lock_window_part);
 
 	window->param.zoom = 1.0;
 	glfwGetFramebufferSize(window->self, &width, &height);

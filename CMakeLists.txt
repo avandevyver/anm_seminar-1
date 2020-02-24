@@ -28,7 +28,7 @@ set(BOV_PARTICLES_POSTPRO "${CMAKE_CURRENT_SOURCE_DIR}/shaders/postpro.glsl"
 
 add_subdirectory(deps/BOV)
 target_link_libraries(anm 
-                      PUBLIC bov pthread)
+                      PUBLIC bov pthread neighborhood_search)
 
 # set anm as the startup project in visual studio
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT anm)

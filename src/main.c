@@ -14,7 +14,7 @@ int main()
 	srand(seed);
 	fillData(data, coord, NPTS);
 
-	neighborhood** nhList = create_neighborhood(data, coord, MAX_ITER, 1, NPTS, USE_CELLS, USE_IMPROVED_METHOD, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, USE_VERLET, USE_THREADS, NTHREADS, seed);
+	neighborhood** nhList = create_neighborhood(data, coord, MAX_ITER, 1, NPTS, USE_CELLS, USE_IMPROVED_METHOD, RADIUS_ALGORITHM, SEARCH_NEIGHBORHOOD, USE_VERLET, USE_THREADS,NTHREADS, seed);
 
 	for (int i = 0; i < MAX_ITER; i++)
 		neighborhood_delete(nhList[i], NPTS);

@@ -2,8 +2,7 @@ cmake_minimum_required(VERSION 3.6)
 project(BOV C)
 
 option(BOV_BUILD_EXAMPLES "Build the BOV example programs" ON)
-option(CMAKE_USE_WIN32_THREADS_INIT "using WIN32 threads" ON)
-option(gtest_disable_pthreads "Disable uses of pthreads in gtest." OFF)
+
 add_library(bov src/BOV.c)
 
 set_target_properties(bov PROPERTIES
@@ -16,8 +15,6 @@ target_include_directories(bov PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaderInclude
 
 add_subdirectory(deps/glfw)
 add_subdirectory(deps/glad)
-add_subdirectory(neighborhood_search)
-add_subdirectory(pthread)
 
 
 set(BOV_PARTICLES_VERT "${CMAKE_CURRENT_SOURCE_DIR}/shaders/particles_vert.glsl"
@@ -93,7 +90,7 @@ add_dependencies(bov shaderIncludes)
 
 # add dependencies: glfw, glad, -lm
 target_link_libraries(bov
-                      PUBLIC glad glfw pthread neighborhood_search)
+                      PUBLIC glad glfw)
 
 
 

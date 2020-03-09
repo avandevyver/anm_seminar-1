@@ -77,9 +77,7 @@
 #define FULLSCREEN_PROGRAM_INDEX 7
 // #define QUAD_PROGRAM_INDEX     8
 
-/* Used to solve a bug when there were multiple thread, see the comment where it is used 
-to see which lines caused the problem*/
-pthread_mutex_t lock_window_part = PTHREAD_MUTEX_INITIALIZER;
+
 
 
 /*%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -907,18 +905,9 @@ bov_window_t* bov_window_new(int width, int height, const char* win_name)
 	glfwSetWindowUserPointer(window->self,window);
 
 	// load opengl functions with GLAD
-	/*if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-		BOV_ERROR_LOG(BOV_GLAD_ERROR,
-			"Failed to initialize OpenGL context");*/
-	/* We had a bug with the memory allocation when using more than one or two threads
-	so we tried putting it into a mutex to ensure it was only visited by one and it 
-	apparently solved the problem*/
-
-	pthread_mutex_lock(&lock_window_part);
 	if(!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress))
 		BOV_ERROR_LOG(BOV_GLAD_ERROR,
 		              "Failed to initialize OpenGL context");
-	pthread_mutex_unlock(&lock_window_part);
 
 	window->param.zoom = 1.0;
 	glfwGetFramebufferSize(window->self, &width, &height);
@@ -1009,150 +998,6 @@ bov_window_t* bov_window_new(int width, int height, const char* win_name)
 	return window;
 }
 
-bov_window_t* bov_window_new_shared(int width, int height, const char* win_name, bov_window_t* w)
-{
-	bov_window_t* window = malloc(sizeof(bov_window_t));
-	CHECK_MALLOC(window);
-
-	glfwSetErrorCallback(error_callback);
-
-	if (!glfwInit())
-		exit(EXIT_FAILURE);
-
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-	glfwWindowHint(GLFW_SAMPLES, 0); // we disable multisampling has we already use shader antialiasing
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-	if (width == 0 || height == 0) {
-		const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-		window->size[0] = mode->width;
-		window->size[1] = mode->height;
-		window->self = glfwCreateWindow(mode->width, mode->height, win_name,
-			glfwGetPrimaryMonitor(), // fullscreen
-			w);
-	}
-	else {
-		if (height < 0) {
-			glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-			height = -height;
-		}
-
-		if (width < 0) {
-			glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
-			width = 100;
-			height = 100;
-		}
-		window->size[0] = width;
-
-
-		window->size[1] = height;
-
-		window->self = glfwCreateWindow(width, height, win_name, NULL, w);
-	}
-
-	if (!window->self) {
-		glfwTerminate();
-		exit(EXIT_FAILURE);
-	}
-
-	glfwMakeContextCurrent(window->self);
-	glfwSetWindowUserPointer(window->self, window);
-
-	// load opengl functions with GLAD
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-		BOV_ERROR_LOG(BOV_GLAD_ERROR,
-			"Failed to initialize OpenGL context");
-
-	window->param.zoom = 1.0;
-	glfwGetFramebufferSize(window->self, &width, &height);
-	framebuffer_size_callback(window->self, width, height);
-	window->param.translate[0] = window->param.translate[1] = 0.0;
-	window->wtime = DBL_MIN;
-
-	// white background color
-	window->backgroundColor[0] = 1.0;
-	window->backgroundColor[1] = 1.0;
-	window->backgroundColor[2] = 1.0;
-	window->backgroundColor[3] = 0.0;
-
-	// framebuffer default blending mode
-	window->blending.modeRGB = GL_FUNC_ADD;
-	window->blending.srcRGB = GL_SRC_ALPHA;
-	window->blending.dstRGB = GL_ONE_MINUS_SRC_ALPHA;
-	window->blending.modeAlpha = GL_FUNC_ADD;
-	window->blending.srcAlpha = GL_SRC_ALPHA;
-	window->blending.dstAlpha = GL_ONE_MINUS_SRC_ALPHA;
-
-	// glfwSetWindowCloseCallback(window->self,close_callback);
-	glfwSetKeyCallback(window->self, key_callback);
-	glfwSetFramebufferSizeCallback(window->self, framebuffer_size_callback);
-	glfwSetWindowSizeCallback(window->self, window_size_callback);
-	glfwSetMouseButtonCallback(window->self, mouse_button_callback);
-	glfwSetCursorPosCallback(window->self, cursor_pos_callback);
-	glfwSetScrollCallback(window->self, scroll_callback);
-
-	//glfwSetInputMode(window->self,GLFW_CURSOR,GLFW_CURSOR_HIDDEN);
-
-
-	glfwSwapInterval(1); // vsync
-	glClearColor(window->backgroundColor[0],
-		window->backgroundColor[1],
-		window->backgroundColor[2],
-		window->backgroundColor[3]);
-	glEnable(GL_MULTISAMPLE);
-	glEnable(GL_CULL_FACE); // cull face that are not counterclockwise
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glPointSize(5); // 10 pixels for a point
-	glEnable(GL_LINE_SMOOTH);
-
-	glfwSetTime(DBL_MIN); // set the time to 0
-
-	{
-		double cursorX = 0.0, cursorY = 0.0;
-		glfwGetCursorPos(window->self, &cursorX, &cursorY);
-		window->cursorPos[0] = 2.0 * cursorX / window->size[0] - 1.0;
-		window->cursorPos[1] = 2.0 * (1.0 - cursorY / window->size[1]) - 1.0;
-		window->clickTime[0] = 0.0;
-		window->clickTime[1] = 0.0;
-	}
-
-	window->running = 1;
-	window->help_needed = 0;
-	window->indication_needed = 0;
-	window->leftClickCursor = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);
-
-	window_OpenGL_init(window);
-
-	window->help = bov_text_new((GLubyte[]) {
-		" Keyboard shortcuts:\n"
-			" -------------------\n\n"
-			"   [esc]   exit\n"
-			"  [space]  play/pause\n"
-			"     p     save .ppm screenshot\n"
-			"     r     reset zoom and translation\n"
-			"    h k    display/hide keyboard shortcuts\n"
-	}, GL_STATIC_DRAW);
-	bov_text_set_space_type(window->help, PIXEL_SPACE);
-	bov_text_set_fontsize(window->help, 32.0f); // 32 pixel height
-	bov_text_set_pos(window->help, (GLfloat[2]) { 16.0f, 7.0f * 32.0f + 64.0f });
-	bov_text_set_boldness(window->help, 0.1f);
-	bov_text_set_outline_width(window->help, 0.5f);
-
-	window->indication = bov_text_new((GLubyte[]) {
-		"press 'k' for keyboard shortcuts\n"
-	}, GL_STATIC_DRAW);
-	bov_text_set_space_type(window->indication, PIXEL_SPACE);
-	bov_text_set_fontsize(window->indication, 32.0f); // 32 pixel height
-	bov_text_set_pos(window->indication, (GLfloat[2]) { 16.0f, 16.0f });
-	bov_text_set_boldness(window->indication, 0.1f);
-	bov_text_set_outline_width(window->indication, 0.5f);
-
-	return window;
-}
 
 void bov_window_update(bov_window_t* window)
 {

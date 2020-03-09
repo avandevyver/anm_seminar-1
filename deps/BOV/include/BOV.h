@@ -35,7 +35,6 @@
 #include <stdarg.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <pthread.h>
 
 /* opaque structures */
 typedef struct bov_window_struct bov_window_t;
@@ -1173,9 +1172,9 @@ BOVCreateDrawingFunctions(fast_triangle_strip, FAST_TRIANGLE_STRIP_PROGRAM)
 BOVCreateDrawingFunctions(fast_triangle_fan, FAST_TRIANGLE_FAN_PROGRAM)
 
 #ifdef __GNUC__
-void error_log(int errorCode, const char *fmt, ...)__attribute__((format (printf, 2, 3)));
+void bov_error_log(int errorCode, const char *fmt, ...)__attribute__((format (printf, 2, 3)));
 #else
-void error_log(int errorCode, const char *fmt, ...);
+void bov_error_log(int errorCode, const char *fmt, ...);
 #endif
 
 #endif

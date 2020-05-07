@@ -74,7 +74,7 @@ typedef struct neighborhood_options {
 void printNeighborhood(neighborhood* nh, GLfloat(* data)[8]);
 
 // function that basically fills the neighborhoods of the particles of one iteration, with the arguments args of type loop_arg
-void neighborhood_update(neighborhood_options* options, neighborhood* nh, GLfloat(* data)[8], int iterations);
+void neighborhood_update(neighborhood_options* options, neighborhood* nh, GLfloat(* data)[8], int iterations, int n_boundary);
 
 // function to change the particles velocities randomly and updates the positions based, we assume elastic collisions with boundaries
 // data : table that contains the informations of the particles of the simulation

@@ -163,28 +163,28 @@ void printCell(GLfloat(* data)[8], cell* c, int size) {
 double compute_kh(int RA) {
 	double target = 21.0 / NPTS;
 	if (NPTS < 21)
-		return sqrt(2.0);
+		return max(0.05,sqrt(2.0/32));
 	else if (!RA)
-		return sqrt(2.0) * target;
-	else if (target <= M_PI / 4)
-		return sqrt(4 * target / M_PI);
-	double tolerance = 0.0000000001;
+		return max(0.05,sqrt(2.0/32) * target);
+	else// if (target <= M_PI)
+		return max(0.05,sqrt(target/1.65 / M_PI));
+	/*double tolerance = 0.0000000001;
 	double kh_min = 1.0;
 	double kh_max = sqrt(2.0);
 	while (fabs(kh_max - kh_min) >= tolerance) {
 		kh_max = kh_min;
-		kh_min = sqrt((target - sin(acos(1.0 / kh_min)) * kh_min) / ((M_PI / 4 - acos(1.0 / kh_min))));
-	}
-	return kh_min;
+		kh_min = sqrt((target - sin(acos(1.0 / kh_min)) * kh_min) / ((M_PI - acos(1.0 / kh_min))));
+	}*/
+	//return kh_min;
 }
 
 
-void neighborhood_update(neighborhood_options* options, neighborhood* nh, GLfloat(* data)[8], int iterations) {
+void neighborhood_update(neighborhood_options* options, neighborhood* nh, GLfloat(* data)[8], int iterations, int n_boundary) {
 	if (options->use_verlet)
 		iterations = iterations % options->optimal_verlet_steps;
 	else
 		iterations = 0;
-
+	//printf("opt %i\n", options->optimal_verlet_steps);
 	if (options->use_verlet && iterations)
 		neighborhood_new(nh,1);
 	else
@@ -203,7 +203,7 @@ void neighborhood_update(neighborhood_options* options, neighborhood* nh, GLfloa
 	cell* cellArray = NULL;
 	if (use_cells) {
 		cellArray = cell_new(ceil(size) * ceil(size));
-		for (int i = 0; i < NPTS; i++) {
+		for (int i = 0; i < NPTS+n_boundary; i++) {
 			int cellNumber = ((int)((data[i][1] + half_length) / (2 * half_length) * size) * ceil(size) + (int)((data[i][0] + half_length) / (2 * half_length) * size));
 			if (data[i][1] == half_length)
 				cellNumber -= size;
@@ -227,7 +227,7 @@ void neighborhood_update(neighborhood_options* options, neighborhood* nh, GLfloa
 	int i_check = i - 1;
 	int j_check = j - 1;
 	int are_still_neighbours = 1;
-	while ((((use_verlet && iterations && use_cells) || !use_cells) && i < NPTS) || (use_cells && this_cell_number < size * size)) {
+	while ((((use_verlet && iterations && use_cells) || !use_cells) && i < (NPTS)) || (use_cells && this_cell_number < size * size)) {
 		if (i != i_check) {
 			int are_still_neighbours = 1;
 			if (use_verlet && iterations) {
@@ -318,16 +318,18 @@ void neighborhood_update(neighborhood_options* options, neighborhood* nh, GLfloa
 				index_j = j;
 				index_i = i;
 			}
-			double distance = sqrt((pow((double)data[index_j][0] - (double)data[index_i][0], 2) + pow((double)data[index_j][1] - (double)data[index_i][1], 2)));
-			if (distance <= kh && index_i != index_j) {
-				neighbours_new(index_j, nh, index_i, distance, !iterations, 0);
-				if (use_improved_method)
-					neighbours_new(index_i, nh, index_j, distance, 0, 0);
-			}
-			else if (use_verlet && !iterations && distance <= (kh + L) && index_i != index_j) {
-				neighbours_new(index_j, nh, index_i, distance, !iterations, 1);
-				if (use_improved_method)
-					neighbours_new(index_i, nh, index_j, distance, 0, 1);
+			if (index_i < NPTS) {
+				double distance = sqrt((pow((double)data[index_j][0] - (double)data[index_i][0], 2) + pow((double)data[index_j][1] - (double)data[index_i][1], 2)));
+				if (distance <= kh && index_i != index_j) {
+					neighbours_new(index_j, nh, index_i, distance, !iterations, 0);
+					if (use_improved_method && index_j < NPTS)
+						neighbours_new(index_i, nh, index_j, distance, 0, 0);
+				}
+				else if (use_verlet && !iterations && distance <= (kh + L) && index_i != index_j) {
+					neighbours_new(index_j, nh, index_i, distance, !iterations, 1);
+					if (use_improved_method && index_j < NPTS)
+						neighbours_new(index_i, nh, index_j, distance, 0, 1);
+				}
 			}
 			if (use_verlet && iterations) {
 				if (checking_neighbours.next) {
@@ -351,7 +353,7 @@ void neighborhood_update(neighborhood_options* options, neighborhood* nh, GLfloa
 						i++;
 				}
 			else
-				if (j == NPTS - 1 || (i == NPTS - 1 && (j == NPTS - 2 || use_improved_method))) {
+				if (j == NPTS + n_boundary - 1 || (i == NPTS + n_boundary - 1 && (j == NPTS + n_boundary - 2 || use_improved_method))) {
 					i++;
 				}
 		}
@@ -360,7 +362,7 @@ void neighborhood_update(neighborhood_options* options, neighborhood* nh, GLfloa
 			j++;
 		}
 		else
-			j = (frameCount) % (NPTS - 1) + (int)(i <= ((frameCount) % (NPTS - 1)));
+			j = (frameCount) % (NPTS + n_boundary - 1) + (int)(i <= ((frameCount) % (NPTS + n_boundary - 1)));
 		frameCount++;
 	}
 	if (use_cells)

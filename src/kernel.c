@@ -1,11 +1,12 @@
 #include "kernel.h"
 #include <math.h>
 
-
+#define DENSITY 1
+#define MASS 1
 // Implementation of the kernel cubic function and return the weight regarding the distance and the radius of the circle
 
 
-void kernel(GLfloat(*data)[14], neighborhood* nh, double kh) {
+/*void kernel(GLfloat(*data)[14], neighborhood* nh, double kh) {
     for (int i = 0; i < NPTS; i++) {
         double val_node_x = data[i][8];
         double val_node_y = data[i][9];
@@ -23,9 +24,8 @@ void kernel(GLfloat(*data)[14], neighborhood* nh, double kh) {
                 double d_x = data[index_node2][0] - data[i][0];
                 double d_y = data[index_node2][1] - data[i][1];
                 
-                /*
-                 You can choose here the desired kernel function for your code.
-                 */
+                // You can choose here the desired kernel function for your code.
+                 
                 
                 //double weight_x = grad_w_cubic(distance, kh, d_x);
                 //double weight_y = grad_w_cubic(distance, kh, d_y);
@@ -59,97 +59,173 @@ void kernel(GLfloat(*data)[14], neighborhood* nh, double kh) {
         double exact = 3 * pow(data[j][0], 2);
         double error = exact - data[j][10];
     }
+}*/
+
+/*
+ Implementation of the kernel cubic function and return the weight regarding the distance and the radius of the circle
+ */
+double grad_w_cubic(double distance, double kh, GLfloat(*data)[8], int i, int j, int is_x)
+{
+    double h = kh;
+    double q = distance / h;
+    double alpha_d = 15 / (7 * M_PI * pow(h, 2));
+    double dqdx = 0;
+    if(is_x)
+        dqdx = (data[i][0] - data[j][0]) / distance;
+    else
+        dqdx = (data[i][1] - data[j][1]) / distance;
+    if (q >= 0 && q <= 1) {
+        return  alpha_d * (-2.0 * q + 1.5 * pow(q, 2))*dqdx;
+    }
+    else if (q <= 2) {
+        return  alpha_d * (-0.5 * pow((2 - q), 2)) * dqdx;
+    }
+    else {
+        return  0.0;
+    }
+}
+
+double grad_w_lucy(double distance, double kh, GLfloat(*data)[8], int i, int j, int is_x)
+{
+    double h = kh;
+    double q = distance / h;
+    double alpha_d = (5 / (M_PI * pow(h, 2)));
+    double dqdx = 0;
+    if (is_x)
+        dqdx = (data[i][0] - data[j][0]) / distance;
+    else
+        dqdx = (data[i][1] - data[j][1]) / distance;
+    if (q >= 0 && q <= 1)
+    {
+        return alpha_d * (-12 * q + 24 * pow(q, 2) - 12 * pow(q, 3)) * dqdx;
+    }
+    else
+    {
+        return 0.0;
+    }
+}
+
+
+double grad_w_newquartic(double distance, double kh, GLfloat(*data)[8], int i, int j, int is_x)
+{
+    double h = kh;
+    double q = distance / h;
+    double alpha_d = (15 / (7 * M_PI * pow(h, 2)));
+    double dqdx = 0;
+    if (is_x)
+        dqdx = (data[i][0] - data[j][0]) / distance;
+    else
+        dqdx = (data[i][1] - data[j][1]) / distance;
+    if (q >= 0 && q <= 2)
+    {
+        return alpha_d * (-(9.0 / 4.0) * q + (19.0 / 8.0) * pow(q, 2) - (5.0 / 8.0) * pow(q, 3)) * dqdx;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+double grad_w_quinticspline(double distance, double kh, GLfloat(*data)[8], int i, int j, int is_x)
+{
+    double h = kh;
+    double q = distance / h;
+    double alpha_d = (7 / (478 * M_PI * pow(h, 2)));
+    double dqdx = 0;
+    if (is_x)
+        dqdx = (data[i][0] - data[j][0]) / distance;
+    else
+        dqdx = (data[i][1] - data[j][1]) / distance;
+    if (q >= 0 && q <= 1)
+    {
+        return alpha_d * (-120 * q + 120 * pow(q, 3) - 50 * pow(q, 4)) * dqdx;
+    }
+    else  if (q > 1 && q <= 2)
+    {
+        return alpha_d * (75 - 420 * q + 450 * pow(q, 2) - 180 * pow(q, 3) + 25 * pow(q, 4)) * dqdx;
+    }
+    else  if (q > 2 && q <= 3)
+    {
+        return alpha_d * (405 + 540 * q - 270 * pow(q, 2) + 60 * pow(q, 3) - 5 * pow(q, 4)) * dqdx;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 /*
  Implementation of the kernel cubic function and return the weight regarding the distance and the radius of the circle
  */
-double grad_w_cubic(double distance, double kh, double d)
+double w_cubic(double distance, double kh)
 {
-    double h = kh / 2;
+    double h = kh;
     double q = distance / h;
-    double weight = 0;
     double alpha_d = 15 / (7 * M_PI * pow(h, 2));
-    
-    if (q > 0) {
-        if (q <= 1) {
-            weight = ((-2.0 * q + 1.5 * pow(q, 2)) * d) / (pow(h, 2) * q );
-        }
-        else {
-            if (q > 2) {
-                weight = 0;
-                printf("too big distance ");
-            }
-            else {
-                weight = (-0.5 * pow((2 - q), 2) * d) / (pow(h, 2) * q);
-            }
-        }
+    if (q >= 0 && q <= 1) {
+        return  alpha_d * (2/3-pow(q,2) + 0.5 * pow(q, 3));
     }
-    return weight*alpha_d;
+    else if (q <= 2) {
+        return  alpha_d * (1/6 * pow((2 - q), 3));
+    }
+    else {
+        return  0.0;
+    }
 }
 
-double grad_w_lucy(double distance, double kh, double d)
+double w_lucy(double distance, double kh)
 {
-    double h = kh / 1;
+    double h = kh;
     double q = distance / h;
-    double grad_w = 0;
     double alpha_d = (5 / (M_PI * pow(h, 2)));
     if (q >= 0 && q <= 1)
     {
-        grad_w = (-12.0 * q * alpha_d * pow((1 - q), 2)) * d /(pow(h,2) * q);
+        return alpha_d * (1+3*q)*pow(1-q,3);
     }
     else
     {
-        grad_w = 0.0;
+        return 0.0;
     }
-    return  grad_w;
 }
 
 
-double grad_w_newquartic(double distance, double kh, double d)
+double w_newquartic(double distance, double kh)
 {
-    double h = kh / 2;
+    double h = kh;
     double q = distance / h;
-    double grad_w = 0;
     double alpha_d = (15 / (7 * M_PI * pow(h, 2)));
     if (q >= 0 && q <= 2)
     {
-        grad_w = (alpha_d * (-(9.0 / 4.0) * q + (19.0 / 8.0) * pow(q, 2) - (5.0 / 8.0) * pow(q, 3)) * d) / (pow(h, 2) * q);
+        return alpha_d * (2.0/3.0-(9.0 / 8.0) * pow(q,2) + (19.0 / 24.0) * pow(q, 3) - (5.0 / 32.0) * pow(q, 4));
     }
     else
     {
-        grad_w = 0;
+        return 0;
     }
-    return  grad_w;
 }
 
-double grad_w_quinticspline(double distance, double kh, double d)
+double w_quinticspline(double distance, double kh)
 {
-    double h = kh / 3;
+    double h = kh;
     double q = distance / h;
-    double x_x, y_y;
-    double grad_w = 0;
     double alpha_d = (7 / (478 * M_PI * pow(h, 2)));
-    double dq = d / (h * distance);
     if (q >= 0 && q <= 1)
     {
-        grad_w = (alpha_d * (-5 * pow((3 - q), 4) + 30 * pow((2 - q), 4) - 75 * pow((1 - q), 4)) * d) / (pow(h, 2) * q);
+        return alpha_d * (pow(3 - q, 5) - 6 * pow(2 - q, 5) + 15 * pow(1 - q, 5));
     }
     else  if (q > 1 && q <= 2)
     {
-        grad_w = (alpha_d * (-5 * pow((3 - q), 4) + 30 * pow((2 - q), 4)) * d) / (pow(h, 2) * q);
+        return alpha_d * (pow(3 - q, 5) - 6 * pow(2 - q, 5));
     }
     else  if (q > 2 && q <= 3)
     {
-        grad_w = (alpha_d * (-5 * pow((3 - q), 4)) * d) / (pow(h, 2) * q);
+        return alpha_d * (pow(3 - q, 5));
     }
     else
     {
-        grad_w = 0;
+        return 0;
     }
-    return  grad_w;
 }
-
 
 
 

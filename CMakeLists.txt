@@ -6,6 +6,7 @@ add_executable(anm
                "${CMAKE_CURRENT_SOURCE_DIR}/src/main.c"
 	       "${CMAKE_CURRENT_SOURCE_DIR}/src/neighborhood_search.c"
 	       "${CMAKE_CURRENT_SOURCE_DIR}/src/kernel.c"
+	       "${CMAKE_CURRENT_SOURCE_DIR}/src/conservation_equations.c"
                # you can add other source file here !
                )
 

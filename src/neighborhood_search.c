@@ -162,12 +162,13 @@ void printCell(GLfloat(* data)[8], cell* c, int size) {
 //      0 means the dummy algorithm, 1 means the more sophisticated algorithm expalined at the seminar ( (intersection between areaGrid and 1/4 areaCircle)/areaGrid = 21/nPoints)
 double compute_kh(int RA) {
 	double target = 21.0 / NPTS;
+	return 0.2;
 	if (NPTS < 21)
 		return max(0.05,sqrt(2.0/32));
 	else if (!RA)
 		return max(0.05,sqrt(2.0/32) * target);
 	else// if (target <= M_PI)
-		return max(0.05,sqrt(target/1.65 / M_PI));
+		return max(0.05,sqrt(target/2 / M_PI));
 	/*double tolerance = 0.0000000001;
 	double kh_min = 1.0;
 	double kh_max = sqrt(2.0);

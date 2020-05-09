@@ -20,13 +20,9 @@ void update_predictor(GLfloat(*data)[8], GLfloat(*sup_data)[3], GLfloat(*new_dat
 
 void update_simple(GLfloat(*data)[8], GLfloat(*coord)[2], float(*sol)[5], float dt, double kh, neighborhood* nhList, double sourceTemp);
 
-void fillDataSem3(GLfloat(*data)[8], GLfloat(*coord)[2], int nPoints, double minTemp, double maxTemp, float(*sol)[5]);
-
-void fillDataSem3_zero(GLfloat(*data)[8], GLfloat(*coord)[2], int nPoints, double minTemp, double maxTemp, float(*sol)[5]);
-
 void drhodt(GLfloat(*data)[8], GLfloat(*sup_data)[3], GLfloat(*new_data)[6], neighborhood* nh, double kh, double (*grad_fun)(double, double, GLfloat**, int, int, int));
 
 void dvdt(GLfloat(*data)[8], GLfloat(*sup_data)[3], GLfloat(*new_data)[6], neighborhood* nh, double kh, double (*grad_fun)(double, double, GLfloat**, int, int, int));
 
-void tempToColor(float temp, float color[3], double initTemp, double sourceTemp);
+void dTdt(GLfloat(*data)[8], GLfloat(*sup_data)[3], GLfloat(*new_data)[6], neighborhood* nh, double kh, double (*grad_fun)(double, double, GLfloat**, int, int, int));
 #endif

@@ -1,9 +1,21 @@
 #include "conservation_equations.h"
 
-#define INIT_DENSITY 0.000027
-#define MU 0.015
-#define PSY 3
-#define R_0 10
+//#define INIT_DENSITY 0.1
+/*
+#define MU 1.5 //500
+#define PSY 1 //300
+#define R_0 7.5 //7.5
+#define k 1
+#define alpha 50
+double INIDENSITY = 0.035;//0.05;
+*/
+#define MU 500
+#define PSY 1000
+#define R_0 7.5
+#define k 1
+#define alpha 50
+double INIDENSITY = 0.5;
+
 /*
 Update the temperature of all points (value of temperature of point i is in sol[i][0])
 */
@@ -15,15 +27,20 @@ void update_euler(GLfloat(*data)[8], GLfloat(*sup_data)[3], GLfloat(*new_data)[6
 	else if (type == 2) {
 		dvdt(data, sup_data, new_data, nh, kh, grad_fun);
 	}
+	else if (type == 3) {
+		dTdt(data, sup_data, new_data, nh, kh, grad_fun);
+	}
 	for (int i = 0; i < NPTS; i++) {
 		if (type == 1) {
-			new_data[nh[i].index][0] = sup_data[nh[i].index][0] + new_data[nh[i].index][0] * dt;
+			//new_data[nh[i].index][0] = sup_data[nh[i].index][0] + new_data[nh[i].index][0] * dt;
 		}
 		else if (type == 2) {
 			//printf("%f %f\n", new_data[nh[i].index][2], new_data[nh[i].index][3]);
 			new_data[nh[i].index][2] = data[nh[i].index][2] + new_data[nh[i].index][2] * dt;
 			new_data[nh[i].index][3] = data[nh[i].index][3] + new_data[nh[i].index][3] * dt;
 		}
+		else if (type==3)
+			new_data[nh[i].index][1] = sup_data[nh[i].index][2] + new_data[nh[i].index][1] * dt;
 	}
 	/*for (int i = 0; i < NPTS; i++) {
 		if (newSol[i] < 374 && newSol[i]>272) {
@@ -40,6 +57,9 @@ void update_predictor(GLfloat(*data)[8], GLfloat(*sup_data)[3], GLfloat(*new_dat
 	else if (type == 2) {
 		dvdt(data, sup_data, new_data, nh, kh, grad_fun);
 	}
+	else if (type == 3) {
+		dTdt(data, sup_data, new_data, nh, kh, grad_fun);
+	}
 	for (int i = 0; i < NPTS; i++) {
 		if (type == 1) {
 			new_data[nh[i].index][0] = sup_data[nh[i].index][0] + new_data[nh[i].index][0] * dt;
@@ -48,17 +68,22 @@ void update_predictor(GLfloat(*data)[8], GLfloat(*sup_data)[3], GLfloat(*new_dat
 			//printf("%f %f\n", new_data[nh[i].index][2], new_data[nh[i].index][3]);
 			new_data[nh[i].index][2] = data[nh[i].index][2] + new_data[nh[i].index][2] * dt/2;
 			new_data[nh[i].index][3] = data[nh[i].index][3] + new_data[nh[i].index][3] * dt/2;
-			data[i][2] = new_data[i][2] + new_data[i][4] / sup_data[i][1] * dt / 2;
+			data[i][2] = new_data[i][2] + new_data[i][4] / sup_data[i][1] * dt/2;
 			data[i][3] = new_data[i][3] + new_data[i][5] / sup_data[i][1] * dt / 2;
 			data[i][0] += dt/2 * data[i][2];
 			data[i][1] += dt/2 * data[i][3];
 		}
+		else if (type == 3)
+			sup_data[nh[i].index][2] = sup_data[nh[i].index][2] + new_data[nh[i].index][1] * dt/2;
 	}
 	if (type == 1) {
 		drhodt(data, sup_data, new_data, nh, kh, grad_fun);
 	}
 	else if (type == 2) {
 		dvdt(data, sup_data, new_data, nh, kh, grad_fun);
+	}
+	else if (type == 3) {
+		dTdt(data, sup_data, new_data, nh, kh, grad_fun);
 	}
 	for (int i = 0; i < NPTS; i++) {
 		if (type == 1) {
@@ -68,6 +93,9 @@ void update_predictor(GLfloat(*data)[8], GLfloat(*sup_data)[3], GLfloat(*new_dat
 			//printf("%f %f\n", new_data[nh[i].index][2], new_data[nh[i].index][3]);
 			new_data[nh[i].index][2] = data[nh[i].index][2] + new_data[nh[i].index][2] * dt / 2;
 			new_data[nh[i].index][3] = data[nh[i].index][3] + new_data[nh[i].index][3] * dt / 2;
+		}
+		if (type == 3) {
+			new_data[nh[i].index][1] = sup_data[nh[i].index][2] + new_data[nh[i].index][1] * dt/2;
 		}
 	}
 }
@@ -196,63 +224,42 @@ void update_simple(GLfloat(*data)[8], GLfloat(*coord)[2], float(*sol)[5], float 
 	}
 }
 
-void fillDataSem3(GLfloat(*data)[8], GLfloat(*coord)[2], int nPoints, double minTemp, double maxTemp, float(*sol)[5])
-{
-	for (int i = 0; i < NPTS; i++) {
-		//data[i][0] = (i / (int)sqrt(NPTS)) * 200 / sqrt(NPTS) - 100;
-		//data[i][1] = (i % (int)sqrt(NPTS)) * 200 / sqrt(NPTS) - 100;
-		data[i][0] = rand() * 200.0 / RAND_MAX - 100.0; // x (rand between -100 and 100)
-		data[i][1] = rand() * 200.0 / RAND_MAX - 100.0; // y (rand between -100 and 100)
-		coord[i][0] = data[i][0];
-		coord[i][1] = data[i][1];
-		data[i][2] = 0; //fixed particles for Seminar 3
-		data[i][3] = 0; //fixed particles for Seminar 3
-		//data[i][2] = rand() * 2.0 / RAND_MAX - 1.0; //Random starting speed
-		//data[i][3] = rand() * 2.0 / RAND_MAX - 1.0; //Random starting speed
-		if (data[i][0] < -90) {
-			//tempToColor(maxTemp, &data[i][4], minTemp, maxTemp); // fill color
-			sol[i][0] = maxTemp;
-		}
-		else {
-			//tempToColor(minTemp, &data[i][4], minTemp, maxTemp); // fill color
-			sol[i][0] = minTemp;
-		}
-		data[i][7] = 1; // transparency
-
-	}
-}
-
-void fillDataSem3_zero(GLfloat(*data)[8], GLfloat(*coord)[2], int nPoints, double minTemp, double maxTemp, float(*sol)[5])
-{
-	for (int i = 0; i < NPTS; i++) {
-		if (data[i][0] < -90) {
-			//tempToColor(maxTemp, &data[i][4], minTemp, maxTemp); // fill color
-			sol[i][0] = maxTemp;
-		}
-		else {
-			//tempToColor(minTemp, &data[i][4], minTemp, maxTemp); // fill color
-			sol[i][0] = minTemp;
-		}
-		data[i][7] = 1; // transparency
-	}
-}
-
 double dyn_pressure(double density, double temperature) {
-	return 1.4 * 8.314 * temperature * INIT_DENSITY / 7 * (pow(density / INIT_DENSITY, 7) - 1);
+	//return 8.314 * temperature * 1.4 * INIDENSITY / 7 * (pow(density / INIDENSITY, 7) - 1);
+	return 1100 * INIDENSITY / 7 * (pow(density / INIDENSITY, 7) - 1);
 	//return 1.4 * 8.314 * temperature * density;
 }
 
 void drhodt(GLfloat(*data)[8], GLfloat(*sup_data)[3], GLfloat(*new_data)[6], neighborhood* nh, double kh, double (*grad_fun)(double, double, GLfloat**, int, int, int)) {
 	for (int i = 0; i < NPTS; i++) {
 		new_data[nh[i].index][0] = 0;
+		double den = 0;
 		for (neighbours* j = nh[nh[i].index].list; j; j = j->next) {
 			//printf("i %i j %i v %f v %f g %f g %f\n",i, j->index, data[nh[i].index][2], data[j->index][2], grad_fun(j->distance, kh, data, nh[i].index, j->index, 1), data[nh[i].index][3], data[j->index][3], grad_fun(j->distance, kh, data, nh[i].index, j->index, 0));
-			new_data[nh[i].index][0] += sup_data[j->index][1] * ((data[nh[i].index][2] - data[j->index][2]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 1) + (data[nh[i].index][3] - data[j->index][3]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 0));
+			//new_data[nh[i].index][0] += sup_data[j->index][1] * ((data[nh[i].index][2] - data[j->index][2]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 1) + (data[nh[i].index][3] - data[j->index][3]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 0));
+			new_data[nh[i].index][0] += sup_data[j->index][1] * grad_fun(j->distance, kh, data, nh[i].index, j->index, 1);
+			den += grad_fun(j->distance, kh, data, nh[i].index, j->index, 1) * sup_data[j->index][1] / sup_data[j->index][0];
 		}
+		new_data[nh[i].index][0] /= den;
+		//printf("%f\n", new_data[nh[i].index][0]);
 	}
 }
 
 void dvdt(GLfloat(*data)[8], GLfloat(*sup_data)[3], GLfloat(*new_data)[6], neighborhood* nh, double kh, double (*grad_fun)(double, double, GLfloat**, int, int, int)) {
+	double* dPdx = calloc(NPTS, sizeof(double));
+	double* dPdy = calloc(NPTS,sizeof(double));
+	for (int i = 0; i < NPTS; i++) {
+		double denx = 0;
+		double deny = 0;
+		for (neighbours* j = nh[nh[i].index].list; j; j = j->next) {
+			dPdx[nh[i].index] += (dyn_pressure(sup_data[nh[i].index][0], sup_data[nh[i].index][2]) / pow(sup_data[nh[i].index][0], 2) + dyn_pressure(sup_data[j->index][0], sup_data[j->index][2]) / pow(sup_data[j->index][0], 2)) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 1);
+			dPdy[nh[i].index] += (dyn_pressure(sup_data[nh[i].index][0], sup_data[nh[i].index][2]) / pow(sup_data[nh[i].index][0], 2) + dyn_pressure(sup_data[j->index][0], sup_data[j->index][2]) / pow(sup_data[j->index][0], 2)) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 0);
+			denx += grad_fun(j->distance, kh, data, nh[i].index, j->index, 1)* (data[j->index][0]-data[nh[i].index][0])* sup_data[j->index][1]/ sup_data[j->index][0];
+			deny += grad_fun(j->distance, kh, data, nh[i].index, j->index, 0) * (data[j->index][1] - data[nh[i].index][1]) * sup_data[j->index][1] / sup_data[j->index][0];
+		}
+		dPdx[nh[i].index] /= denx;
+		dPdy[nh[i].index] /= deny;
+	}
 	for (int i = 0; i < NPTS; i++) {
 		int gx = 0;
 		int gy = -0;
@@ -266,10 +273,22 @@ void dvdt(GLfloat(*data)[8], GLfloat(*sup_data)[3], GLfloat(*new_data)[6], neigh
 				new_data[nh[i].index][4] += PSY / pow(j->distance, 2) * (pow(R_0 / j->distance, 12) - pow(R_0 / j->distance, 4)) * (data[nh[i].index][0] - data[j->index][0]);
 				new_data[nh[i].index][5] += PSY / pow(j->distance, 2) * (pow(R_0 / j->distance, 12) - pow(R_0 / j->distance, 4)) * (data[nh[i].index][1] - data[j->index][1]);
 			}
-			new_data[nh[i].index][2] += sup_data[j->index][1] * ((dyn_pressure(sup_data[nh[i].index][0], sup_data[nh[i].index][2]) / pow(sup_data[nh[i].index][0], 2) + dyn_pressure(sup_data[j->index][0], sup_data[j->index][2]) / pow(sup_data[j->index][0], 2)) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 1) + 2 * MU / sup_data[nh[i].index][0] * sup_data[j->index][1] / sup_data[j->index][0] * (data[nh[i].index][2] - data[j->index][2]) * ((data[nh[i].index][0] - data[j->index][0]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 1) + (data[nh[i].index][1] - data[j->index][1]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 0)) / pow(j->distance, 2));
-			new_data[nh[i].index][3] += sup_data[j->index][1] * ((dyn_pressure(sup_data[nh[i].index][0], sup_data[nh[i].index][2]) / pow(sup_data[nh[i].index][0], 2) + dyn_pressure(sup_data[j->index][0], sup_data[j->index][2]) / pow(sup_data[j->index][0], 2)) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 0) + 2 * MU / sup_data[nh[i].index][0] * sup_data[j->index][1] / sup_data[j->index][0] * (data[nh[i].index][3] - data[j->index][3]) * ((data[nh[i].index][0] - data[j->index][0]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 1) + (data[nh[i].index][1] - data[j->index][1]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 0)) / pow(j->distance, 2));
+			new_data[nh[i].index][2] += sup_data[j->index][1] * dPdx[nh[i].index] + 2 * MU / sup_data[nh[i].index][0] * sup_data[j->index][1] / sup_data[j->index][0] * (data[nh[i].index][2] - data[j->index][2]) * ((data[nh[i].index][0] - data[j->index][0]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 1) + (data[nh[i].index][1] - data[j->index][1]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 0)) / pow(j->distance, 2);
+			new_data[nh[i].index][3] += sup_data[j->index][1] * dPdy[nh[i].index] + 2 * MU / sup_data[nh[i].index][0] * sup_data[j->index][1] / sup_data[j->index][0] * (data[nh[i].index][3] - data[j->index][3]) * ((data[nh[i].index][0] - data[j->index][0]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 1) + (data[nh[i].index][1] - data[j->index][1]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 0)) / pow(j->distance, 2);
 			//new_data[nh[i].index][2] += sup_data[j->index][1] * ( 2 * MU / sup_data[nh[i].index][0] * sup_data[j->index][1] / sup_data[j->index][0] * (data[nh[i].index][2] - data[j->index][2]) * ((data[nh[i].index][0] - data[j->index][0]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 1) + (data[nh[i].index][1] - data[j->index][1]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 0)) / pow(j->distance, 2));
 			//new_data[nh[i].index][3] += sup_data[j->index][1] * (2 * MU / sup_data[nh[i].index][0] * sup_data[j->index][1] / sup_data[j->index][0] * (data[nh[i].index][3] - data[j->index][3]) * ((data[nh[i].index][0] - data[j->index][0]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 1) + (data[nh[i].index][1] - data[j->index][1]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 0)) / pow(j->distance, 2));
+		}
+	}
+	free(dPdx);
+	free(dPdy);
+}
+
+void dTdt(GLfloat(*data)[8], GLfloat(*sup_data)[3], GLfloat(*new_data)[6], neighborhood* nh, double kh, double (*grad_fun)(double, double, GLfloat**, int, int, int)) {
+	for (int i = 0; i < NPTS; i++) {
+		new_data[nh[i].index][1] = 0;
+		for (neighbours* j = nh[nh[i].index].list; j; j = j->next) {
+			//printf("i %i j %i v %f v %f g %f g %f\n",i, j->index, data[nh[i].index][2], data[j->index][2], grad_fun(j->distance, kh, data, nh[i].index, j->index, 1), data[nh[i].index][3], data[j->index][3], grad_fun(j->distance, kh, data, nh[i].index, j->index, 0));
+			new_data[nh[i].index][1] += -dyn_pressure(sup_data[nh[i].index][0], sup_data[nh[i].index][2])*sup_data[j->index][1] * ((data[nh[i].index][2] - data[j->index][2]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 1) + (data[nh[i].index][3] - data[j->index][3]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 0))+alpha* 2 * sup_data[j->index][1] / sup_data[j->index][0] * (sup_data[nh[i].index][2] - sup_data[j->index][2]) * ((data[nh[i].index][0] - data[j->index][0]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 1) + (data[nh[i].index][1] - data[j->index][1]) * grad_fun(j->distance, kh, data, nh[i].index, j->index, 0)) / pow(j->distance, 2);
 		}
 	}
 }

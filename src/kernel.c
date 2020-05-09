@@ -173,7 +173,7 @@ double w_cubic(double distance, double kh)
     }
 }
 
-double w_lucy(double distance, double kh)
+double w_lucy(double distance, double kh, GLfloat(*data)[8], int i, int j, int is_x)
 {
     double h = kh;
     double q = distance / h;

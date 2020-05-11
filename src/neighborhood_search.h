@@ -2,10 +2,9 @@
 #define NEIGHBORHOOD_SEARCH_H
 
 #include "BOV.h"
+#include "shared_variables.h"
 #include <time.h>
 #include <math.h>
-
-extern int NPTS;
 
 // see stringification process
 #define xstr(s) str(s)

@@ -2,24 +2,14 @@
 #define KERNEL_H
 
 
-#include "neighborhood_search.h"
-//#include "neighborhood_search.h"
 #include "BOV.h"
 
+#include "neighborhood_search.h"
+#include "shared_variables.h"
 #include <time.h>
 #include <math.h>
 
 typedef struct neighborhood neighborhood;
-
-
-/*
- Implementation of the kernel function.
- It helps to compute the divergente, gradient and laplacien values.
- Input : table with all informations on every particles and their coordonates, object with each the neigbours of each particle stored as a list and the radius of the neighborhood.
- Output : update the divergente, gradient and laplacien of every nodes.
- */
-void kernel(GLfloat(*data)[14], GLfloat(*coord)[2], neighborhood* nh, double kh);
-
 
 /*
  Implementation of the gradient of the kernel cubic spline function

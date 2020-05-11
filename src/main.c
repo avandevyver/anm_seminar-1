@@ -29,15 +29,15 @@ static void temperature_to_colormap(float v, float color[3])
 }
 static void density_to_colormap(float v, float color[3])
 {
-	color[0] = 1.5 - 4.0 * fabs((v - INITDENSITY)*1000000  - 0.25);
-	color[1] = 1.5 - 4.0 * fabs((v - INITDENSITY)*1000000  - 0.0);
-	color[2] = 1.5 - 4.0 * fabs((v - INITDENSITY)*1000000  + 0.25);
+	color[0] = 1.5 - 4.0 * fabs((v - INITDENSITY)*100000  - 0.25);
+	color[1] = 1.5 - 4.0 * fabs((v - INITDENSITY)*100000  - 0.0);
+	color[2] = 1.5 - 4.0 * fabs((v - INITDENSITY)*100000  + 0.25);
 }
 static void pressure_to_colormap(float v, float color[3])
 {
-	color[0] = 1.5 - 4.0 * fabs((dyn_pressure(v) )*1000  - 0.25);
-	color[1] = 1.5 - 4.0 * fabs((dyn_pressure(v) )*1000  - 0.0);
-	color[2] = 1.5 - 4.0 * fabs((dyn_pressure(v) )*1000  + 0.25);
+	color[0] = 1.5 - 4.0 * fabs((dyn_pressure(v) )*100  - 0.25);
+	color[1] = 1.5 - 4.0 * fabs((dyn_pressure(v) )*100  - 0.0);
+	color[2] = 1.5 - 4.0 * fabs((dyn_pressure(v) )*100  + 0.25);
 }
 
 // function to fill the data table of the nPoints particles positions, speeds, colors and transparency and the coord table with the nPoints particles positions used to draw;
